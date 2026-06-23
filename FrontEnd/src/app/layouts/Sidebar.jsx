@@ -10,20 +10,29 @@ import {
   User,
   Coffee,
   X,
+  Shield,
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: Users, label: 'Nhân viên', path: '/employees' },
-  { icon: Calendar, label: 'Phân ca', path: '/schedule' },
-  { icon: ClipboardCheck, label: 'Chấm công', path: '/attendance' },
-  { icon: DollarSign, label: 'Lương', path: '/payroll' },
-  { icon: FileText, label: 'Nghỉ phép', path: '/leave-requests' },
-  { icon: Bell, label: 'Thông báo', path: '/notifications' },
-  { icon: User, label: 'Hồ sơ', path: '/profile' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: Users, label: 'Nhân viên', path: '/employees', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: Shield, label: 'Tài khoản', path: '/accounts', roles: ['Admin'] },
+  { icon: Calendar, label: 'Phân ca', path: '/schedule', roles: ['Admin', 'Quản lý'] },
+  { icon: Calendar, label: 'Lịch của tôi', path: '/my-schedule', roles: ['Staff'] },
+  { icon: ClipboardCheck, label: 'Chấm công', path: '/attendance', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: DollarSign, label: 'Lương', path: '/payroll', roles: ['Admin', 'Quản lý'] },
+  { icon: FileText, label: 'Nghỉ phép', path: '/leave-requests', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: Bell, label: 'Thông báo', path: '/notifications', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: User, label: 'Hồ sơ', path: '/profile', roles: ['Admin', 'Quản lý', 'Staff'] },
 ];
 
 export const Sidebar = ({ isOpen = false, onClose }) => {
+  const { user } = useAuth();
+  const userRole = user?.role || 'Staff';
+  
+  const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
+
   return (
     <>
       {isOpen && (
@@ -62,7 +71,7 @@ export const Sidebar = ({ isOpen = false, onClose }) => {
 
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-1">
-            {menuItems.map((item) => (
+            {filteredMenuItems.map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}

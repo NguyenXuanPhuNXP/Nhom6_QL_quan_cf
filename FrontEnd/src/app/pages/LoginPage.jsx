@@ -7,37 +7,75 @@ import { Label } from '../components/ui/label';
 import { Checkbox } from '../components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { useAuth } from '../hooks/useAuth';
-import { authAPI } from '../services/api';
 import { toast } from 'sonner';
 
 export const LoginPage = () => {
+  const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
     
-    if (!username || !password) {
-      toast.error('Vui lòng nhập đầy đủ thông tin');
-      return;
+    if (isRegistering) {
+        if (!username || !password || !confirmPassword || !fullName) {
+            toast.error('Vui lòng nhập đầy đủ thông tin bắt buộc');
+            return;
+        }
+        if (password !== confirmPassword) {
+            toast.error('Mật khẩu xác nhận không khớp');
+            return;
+        }
+        if (password.length < 6) {
+            toast.error('Mật khẩu phải có ít nhất 6 ký tự');
+            return;
+        }
+    } else {
+        if (!username || !password) {
+            toast.error('Vui lòng nhập đầy đủ thông tin');
+            return;
+        }
     }
 
     setIsLoading(true);
     try {
-      const user = await authAPI.login(username, password);
-      if (user) {
-        login(user);
-        toast.success('Đăng nhập thành công!');
+      const endpoint = isRegistering ? 'http://localhost:3000/auth/register' : 'http://localhost:3000/auth/login';
+      const bodyData = isRegistering 
+        ? { username, password, confirmPassword, full_name: fullName }
+        : { username, password };
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData),
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.token) {
+        login({
+          id: data.user.account_id,
+          username: data.user.username,
+          role: data.user.role_name,
+          employee: {
+            employee_id: data.user.employee_id,
+            full_name: data.user.full_name,
+          },
+        }, data.token);
+        
+        toast.success(isRegistering ? 'Đăng ký thành công!' : 'Đăng nhập thành công!');
         navigate('/dashboard');
       } else {
-        toast.error('Tên đăng nhập hoặc mật khẩu không đúng');
+        toast.error(data.message || 'Có lỗi xảy ra');
       }
     } catch (error) {
-      toast.error('Có lỗi xảy ra. Vui lòng thử lại');
+      toast.error('Có lỗi xảy ra. Vui lòng kiểm tra lại kết nối mạng');
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +93,7 @@ export const LoginPage = () => {
         <div className="absolute inset-0 bg-gradient-to-br from-[#0f172a]/95 to-[#1e293b]/90"></div>
       </div>
 
-      {/* Login Card */}
+      {/* Auth Card */}
       <Card className="w-full max-w-md relative z-10 shadow-2xl">
         <CardHeader className="space-y-4 text-center">
           <div className="mx-auto w-16 h-16 bg-[#3b82f6] rounded-2xl flex items-center justify-center">
@@ -65,9 +103,25 @@ export const LoginPage = () => {
           <CardDescription>Hệ thống quản lý nhân sự và ca làm</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-4">
+            
+            {isRegistering && (
+                <div className="space-y-2">
+                <Label htmlFor="fullname">Họ và tên *</Label>
+                <Input
+                    id="fullname"
+                    type="text"
+                    placeholder="Nguyễn Văn A"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    disabled={isLoading}
+                    className="h-11"
+                />
+                </div>
+            )}
+
             <div className="space-y-2">
-              <Label htmlFor="username">Tên đăng nhập</Label>
+              <Label htmlFor="username">Tên đăng nhập {isRegistering && '*'}</Label>
               <Input
                 id="username"
                 type="text"
@@ -80,7 +134,7 @@ export const LoginPage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Mật khẩu</Label>
+              <Label htmlFor="password">Mật khẩu {isRegistering && '*'}</Label>
               <Input
                 id="password"
                 type="password"
@@ -92,20 +146,37 @@ export const LoginPage = () => {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="remember"
-                checked={rememberMe}
-                onCheckedChange={(checked) => setRememberMe(checked)}
-                disabled={isLoading}
-              />
-              <label
-                htmlFor="remember"
-                className="text-sm font-normal text-slate-600 cursor-pointer"
-              >
-                Ghi nhớ đăng nhập
-              </label>
-            </div>
+            {isRegistering && (
+                <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
+                <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Nhập lại mật khẩu"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={isLoading}
+                    className="h-11"
+                />
+                </div>
+            )}
+
+            {!isRegistering && (
+                <div className="flex items-center space-x-2">
+                <Checkbox
+                    id="remember"
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked)}
+                    disabled={isLoading}
+                />
+                <label
+                    htmlFor="remember"
+                    className="text-sm font-normal text-slate-600 cursor-pointer"
+                >
+                    Ghi nhớ đăng nhập
+                </label>
+                </div>
+            )}
 
             <Button
               type="submit"
@@ -115,14 +186,28 @@ export const LoginPage = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Đang đăng nhập...
+                  Đang xử lý...
                 </>
               ) : (
-                'Đăng nhập'
+                isRegistering ? 'Đăng ký' : 'Đăng nhập'
               )}
             </Button>
           </form>
 
+          <div className="mt-6 text-center text-sm text-slate-600">
+            {isRegistering ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
+            <button 
+                className="ml-1 text-[#3b82f6] hover:underline font-semibold"
+                onClick={() => {
+                    setIsRegistering(!isRegistering);
+                    setUsername('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    setFullName('');
+                }}
+            >
+                {isRegistering ? 'Đăng nhập ngay' : 'Đăng ký ngay'}
+            </button>
           <div className="mt-6 pt-4 border-t text-center">
             <p className="text-sm text-slate-600 mb-3">Chưa có tài khoản?</p>
             <Button

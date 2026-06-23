@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Plus, Calendar as CalendarIcon } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Edit, Trash2 } from 'lucide-react';
 import { Loading } from '../components/Loading';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
+import { Input } from '../components/ui/input';
 import {
   Table,
   TableBody,
@@ -22,24 +23,56 @@ import {
 } from '../components/ui/dialog';
 import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { scheduleAPI, employeeAPI, shiftAPI } from '../services/api';
 import { toast } from 'sonner';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useAuth } from '../hooks/useAuth';
+
+const API_URL = 'http://localhost:3000';
+
+const getAuthHeaders = () => {
+  const stored = localStorage.getItem('user');
+  if (stored) {
+    try {
+      const user = JSON.parse(stored);
+      if (user.token) {
+        return {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        };
+      }
+    } catch (_) {}
+  }
+  return { 'Content-Type': 'application/json' };
+};
+
+// Shift color mapping
+const SHIFT_COLORS = {
+  'Ca sáng': '#3b82f6',
+  'Ca chiều': '#10b981',
+  'Ca tối': '#8b5cf6',
+};
+const getShiftColor = (shiftName) => SHIFT_COLORS[shiftName] || '#6366f1';
 
 export const SchedulePage = () => {
+  const { user } = useAuth();
+  const canManage = user?.role === 'Admin' || user?.role === 'Quản lý';
+
   const [schedules, setSchedules] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState(null);
+  const [deletingScheduleId, setDeletingScheduleId] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [formData, setFormData] = useState({
-    employee_id: 0,
-    shift_id: 0,
+    employee_id: '',
+    shift_id: '',
     work_date: '',
   });
-
+//
   useEffect(() => {
     fetchData();
   }, []);
@@ -47,19 +80,51 @@ export const SchedulePage = () => {
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [schedulesData, employeesData, shiftsData] = await Promise.all([
-        scheduleAPI.getAll(),
-        employeeAPI.getAll(),
-        shiftAPI.getAll(),
+      const headers = getAuthHeaders();
+      const [schedulesRes, employeesRes, shiftsRes] = await Promise.all([
+        fetch(`${API_URL}/api/schedules`, { headers }),
+        fetch(`${API_URL}/api/schedules/employees`, { headers }),
+        fetch(`${API_URL}/api/schedules/shifts`, { headers }),
       ]);
+
+      if (!schedulesRes.ok || !employeesRes.ok || !shiftsRes.ok) {
+        throw new Error('Failed to fetch data');
+      }
+
+      const [schedulesData, employeesData, shiftsData] = await Promise.all([
+        schedulesRes.json(),
+        employeesRes.json(),
+        shiftsRes.json(),
+      ]);
+
       setSchedules(schedulesData);
       setEmployees(employeesData);
       setShifts(shiftsData);
     } catch (error) {
-      toast.error('Lỗi khi tải dữ liệu');
+      console.error('Fetch error:', error);
+      toast.error('Lỗi khi tải dữ liệu lịch làm việc');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOpenDialog = (schedule = null) => {
+    if (schedule) {
+      setEditingSchedule(schedule);
+      setFormData({
+        employee_id: String(schedule.employee_id),
+        shift_id: String(schedule.shift_id),
+        work_date: schedule.work_date,
+      });
+    } else {
+      setEditingSchedule(null);
+      setFormData({
+        employee_id: '',
+        shift_id: '',
+        work_date: format(new Date(), 'yyyy-MM-dd'),
+      });
+    }
+    setIsDialogOpen(true);
   };
 
   const handleSubmit = async () => {
@@ -69,9 +134,56 @@ export const SchedulePage = () => {
     }
 
     try {
-      await scheduleAPI.create(formData);
-      toast.success('Thêm lịch làm việc thành công');
+      const payload = {
+        employee_id: Number(formData.employee_id),
+        shift_id: Number(formData.shift_id),
+        work_date: formData.work_date,
+      };
+
+      let res;
+      if (editingSchedule) {
+        res = await fetch(`${API_URL}/api/schedules/${editingSchedule.schedule_id}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch(`${API_URL}/api/schedules`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || 'Có lỗi xảy ra');
+        return;
+      }
+
+      toast.success(editingSchedule ? 'Cập nhật lịch thành công' : 'Thêm lịch thành công');
       setIsDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error('Có lỗi xảy ra');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deletingScheduleId) return;
+    try {
+      const res = await fetch(`${API_URL}/api/schedules/${deletingScheduleId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || 'Có lỗi xảy ra');
+        return;
+      }
+      toast.success('Xóa lịch thành công');
+      setIsDeleteDialogOpen(false);
+      setDeletingScheduleId(null);
       fetchData();
     } catch (error) {
       toast.error('Có lỗi xảy ra');
@@ -101,22 +213,19 @@ export const SchedulePage = () => {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Phân ca làm việc</h1>
-          <p className="text-slate-600 mt-1">Quản lý lịch làm việc theo tuần</p>
+          <p className="text-slate-600 mt-1">
+            {canManage ? 'Quản lý lịch làm việc theo tuần' : 'Xem lịch làm việc theo tuần'}
+          </p>
         </div>
-        <Button
-          onClick={() => {
-            setFormData({
-              employee_id: 0,
-              shift_id: 0,
-              work_date: format(new Date(), 'yyyy-MM-dd'),
-            });
-            setIsDialogOpen(true);
-          }}
-          className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Thêm lịch
-        </Button>
+        {canManage && (
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Thêm lịch
+          </Button>
+        )}
       </div>
 
       {/* Week Navigation */}
@@ -182,17 +291,59 @@ export const SchedulePage = () => {
                       return (
                         <TableCell key={day.toString()} className="text-center">
                           {schedule && schedule.shift ? (
-                            <Badge
-                              style={{
-                                backgroundColor: schedule.shift.color || '#3b82f6',
-                                color: 'white',
-                              }}
-                              className="cursor-pointer"
-                            >
-                              {schedule.shift.shift_name}
-                            </Badge>
+                            <div className="flex flex-col items-center gap-1">
+                              <Badge
+                                style={{
+                                  backgroundColor: getShiftColor(schedule.shift.shift_name),
+                                  color: 'white',
+                                }}
+                                className={canManage ? 'cursor-pointer' : ''}
+                                onClick={() => canManage && handleOpenDialog(schedule)}
+                              >
+                                {schedule.shift.shift_name}
+                              </Badge>
+                              {canManage && (
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleOpenDialog(schedule)}
+                                    className="text-slate-400 hover:text-blue-500 transition-colors"
+                                    title="Sửa"
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setDeletingScheduleId(schedule.schedule_id);
+                                      setIsDeleteDialogOpen(true);
+                                    }}
+                                    className="text-slate-400 hover:text-red-500 transition-colors"
+                                    title="Xóa"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           ) : (
-                            <span className="text-slate-300">-</span>
+                            canManage ? (
+                              <button
+                                onClick={() => {
+                                  setEditingSchedule(null);
+                                  setFormData({
+                                    employee_id: String(employee.employee_id),
+                                    shift_id: '',
+                                    work_date: format(day, 'yyyy-MM-dd'),
+                                  });
+                                  setIsDialogOpen(true);
+                                }}
+                                className="text-slate-300 hover:text-blue-400 transition-colors"
+                                title="Thêm ca"
+                              >
+                                <Plus className="w-4 h-4 mx-auto" />
+                              </button>
+                            ) : (
+                              <span className="text-slate-300">-</span>
+                            )
                           )}
                         </TableCell>
                       );
@@ -216,7 +367,7 @@ export const SchedulePage = () => {
               <div key={shift.shift_id} className="flex items-center gap-2">
                 <Badge
                   style={{
-                    backgroundColor: shift.color || '#3b82f6',
+                    backgroundColor: getShiftColor(shift.shift_name),
                     color: 'white',
                   }}
                 >
@@ -231,22 +382,24 @@ export const SchedulePage = () => {
         </CardContent>
       </Card>
 
-      {/* Add Schedule Dialog */}
+      {/* Add/Edit Schedule Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Thêm lịch làm việc</DialogTitle>
+            <DialogTitle>
+              {editingSchedule ? 'Chỉnh sửa lịch làm việc' : 'Thêm lịch làm việc'}
+            </DialogTitle>
             <DialogDescription>
-              Phân ca làm việc cho nhân viên
+              {editingSchedule ? 'Cập nhật thông tin ca làm việc' : 'Phân ca làm việc cho nhân viên'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="employee">Nhân viên *</Label>
               <Select
-                value={formData.employee_id.toString()}
+                value={formData.employee_id}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, employee_id: Number(value) })
+                  setFormData({ ...formData, employee_id: value })
                 }
               >
                 <SelectTrigger>
@@ -254,8 +407,8 @@ export const SchedulePage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {employees.map((emp) => (
-                    <SelectItem key={emp.employee_id} value={emp.employee_id.toString()}>
-                      {emp.full_name} - {emp.position}
+                    <SelectItem key={emp.employee_id} value={String(emp.employee_id)}>
+                      {emp.full_name} {emp.position_name ? `- ${emp.position_name}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -264,9 +417,9 @@ export const SchedulePage = () => {
             <div className="space-y-2">
               <Label htmlFor="shift">Ca làm *</Label>
               <Select
-                value={formData.shift_id.toString()}
+                value={formData.shift_id}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, shift_id: Number(value) })
+                  setFormData({ ...formData, shift_id: value })
                 }
               >
                 <SelectTrigger>
@@ -274,7 +427,7 @@ export const SchedulePage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {shifts.map((shift) => (
-                    <SelectItem key={shift.shift_id} value={shift.shift_id.toString()}>
+                    <SelectItem key={shift.shift_id} value={String(shift.shift_id)}>
                       {shift.shift_name} ({shift.start_time} - {shift.end_time})
                     </SelectItem>
                   ))}
@@ -283,14 +436,13 @@ export const SchedulePage = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="work_date">Ngày làm việc *</Label>
-              <input
+              <Input
                 id="work_date"
                 type="date"
                 value={formData.work_date}
                 onChange={(e) =>
                   setFormData({ ...formData, work_date: e.target.value })
                 }
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               />
             </div>
           </div>
@@ -299,7 +451,30 @@ export const SchedulePage = () => {
               Hủy
             </Button>
             <Button onClick={handleSubmit} className="bg-[#3b82f6] hover:bg-[#2563eb]">
-              Thêm lịch
+              {editingSchedule ? 'Cập nhật' : 'Thêm lịch'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa lịch làm việc này? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button 
+              onClick={handleDelete} 
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Xóa
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -4,11 +4,13 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { EmployeePage } from './pages/EmployeePage';
 import { SchedulePage } from './pages/SchedulePage';
+import { EmployeeSchedulePage } from './pages/EmployeeSchedulePage';
 import { AttendancePage } from './pages/AttendancePage';
 import { PayrollPage } from './pages/PayrollPage';
 import { LeaveRequestPage } from './pages/LeaveRequestPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AccountPage } from './pages/AccountPage';
 import { MainLayout } from './layouts/MainLayout';
 
 export const router = createBrowserRouter([
@@ -33,8 +35,16 @@ export const router = createBrowserRouter([
         element: <EmployeePage />,
       },
       {
+        path: 'accounts',
+        element: <AccountPage />,
+      },
+      {
         path: 'schedule',
         element: <SchedulePage />,
+      },
+      {
+        path: 'my-schedule',
+        element: <EmployeeSchedulePage />,
       },
       {
         path: 'attendance',
