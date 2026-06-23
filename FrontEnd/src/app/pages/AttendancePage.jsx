@@ -89,7 +89,7 @@ export const AttendancePage = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-800">Chấm công</h1>
+        <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Chấm công</h1>
         <p className="text-slate-600 mt-1">Quản lý chấm công check-in/check-out</p>
       </div>
 
@@ -147,13 +147,13 @@ export const AttendancePage = () => {
       {/* Date Filter */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <label className="text-sm font-medium text-slate-700">Chọn ngày:</label>
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm sm:w-auto"
             />
           </div>
         </CardContent>
@@ -168,7 +168,7 @@ export const AttendancePage = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Nhân viên</TableHead>

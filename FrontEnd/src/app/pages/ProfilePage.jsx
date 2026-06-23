@@ -67,11 +67,11 @@ export const ProfilePage = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-800">Hồ sơ cá nhân</h1>
+        <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Hồ sơ cá nhân</h1>
         <p className="text-slate-600 mt-1">Quản lý thông tin tài khoản của bạn</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
         {/* Profile Card */}
         <Card className="lg:col-span-1">
           <CardContent className="pt-6">
@@ -120,12 +120,12 @@ export const ProfilePage = () => {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="profile" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="profile">
+              <TabsList className="grid h-auto w-full grid-cols-2">
+                <TabsTrigger value="profile" className="text-xs sm:text-sm">
                   <User className="w-4 h-4 mr-2" />
                   Thông tin cá nhân
                 </TabsTrigger>
-                <TabsTrigger value="password">
+                <TabsTrigger value="password" className="text-xs sm:text-sm">
                   <Lock className="w-4 h-4 mr-2" />
                   Đổi mật khẩu
                 </TabsTrigger>
@@ -169,22 +169,22 @@ export const ProfilePage = () => {
                     />
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+              <div className="flex flex-col gap-3 pt-4 sm:flex-row">
                     {isEditing ? (
                       <>
                         <Button
                           onClick={handleUpdateProfile}
-                          className="bg-[#3b82f6] hover:bg-[#2563eb]"
+                          className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
                         >
                           <Save className="w-4 h-4 mr-2" />
                           Lưu thay đổi
                         </Button>
-                        <Button variant="outline" onClick={() => setIsEditing(false)}>
+                        <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsEditing(false)}>
                           Hủy
                         </Button>
                       </>
                     ) : (
-                      <Button onClick={() => setIsEditing(true)}>Chỉnh sửa</Button>
+                      <Button className="w-full sm:w-auto" onClick={() => setIsEditing(true)}>Chỉnh sửa</Button>
                     )}
                   </div>
                 </div>
@@ -242,7 +242,7 @@ export const ProfilePage = () => {
 
                   <Button
                     onClick={handleChangePassword}
-                    className="bg-[#3b82f6] hover:bg-[#2563eb] mt-4"
+                    className="mt-4 w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
                   >
                     <Lock className="w-4 h-4 mr-2" />
                     Đổi mật khẩu

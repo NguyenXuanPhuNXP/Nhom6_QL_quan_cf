@@ -158,14 +158,14 @@ export const EmployeePage = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Quản lý nhân viên</h1>
+          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Quản lý nhân viên</h1>
           <p className="text-slate-600 mt-1">Danh sách và thông tin nhân viên</p>
         </div>
         <Button
           onClick={() => handleOpenDialog()}
-          className="bg-[#3b82f6] hover:bg-[#2563eb]"
+          className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Thêm nhân viên
@@ -175,7 +175,7 @@ export const EmployeePage = () => {
       {/* Search and Filter */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
@@ -196,7 +196,7 @@ export const EmployeePage = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Nhân viên</TableHead>
@@ -260,7 +260,7 @@ export const EmployeePage = () => {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingEmployee ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}
@@ -269,7 +269,7 @@ export const EmployeePage = () => {
               Điền thông tin nhân viên vào form bên dưới
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="full_name">Họ và tên *</Label>
               <Input
@@ -323,7 +323,7 @@ export const EmployeePage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="address">Địa chỉ</Label>
               <Input
                 id="address"
