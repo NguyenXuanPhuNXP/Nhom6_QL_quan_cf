@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JWT Test</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 10px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        textarea { width: 100%; height: 200px; margin-top: 10px; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>JWT Authentication Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Login Test</h2>
+        <button onclick="testLogin()">Test Admin Login</button>
+        <p id="login-status"></p>
+        <textarea id="login-response" readonly></textarea>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Protected Route Test</h2>
+        <button onclick="testProtected()">Test Protected Route</button>
+        <p id="protected-status"></p>
+        <textarea id="protected-response" readonly></textarea>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Register Test</h2>
+        <button onclick="testRegister()">Test Register</button>
+        <p id="register-status"></p>
+        <textarea id="register-response" readonly></textarea>
+    </div>
+
+    <script>
+        let token = '';
+
+        async function testLogin() {
+            const statusEl = document.getElementById('login-status');
+            const responseEl = document.getElementById('login-response');
+            
+            try {
+                statusEl.textContent = 'Testing...';
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                responseEl.value = JSON.stringify(data, null, 2);
+                
+                if (response.ok && data.token) {
+                    token = data.token;
+                    statusEl.textContent = '✓ Login successful!';
+                    statusEl.className = 'success';
+                } else {
+                    statusEl.textContent = '✗ Login failed!';
+                    statusEl.className = 'error';
+                }
+            } catch (error) {
+                statusEl.textContent = '✗ Error: ' + error.message;
+                statusEl.className = 'error';
+                responseEl.value = error.message;
+            }
+        }
+
+        async function testProtected() {
+            const statusEl = document.getElementById('protected-status');
+            const responseEl = document.getElementById('protected-response');
+            
+            if (!token) {
+                statusEl.textContent = '✗ Please login first!';
+                statusEl.className = 'error';
+                return;
+            }
+
+            try {
+                statusEl.textContent = 'Testing...';
+                const response = await fetch('http://localhost:3000/api/protected/profile', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                const data = await response.json();
+                responseEl.value = JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    statusEl.textContent = '✓ Protected route accessible!';
+                    statusEl.className = 'success';
+                } else {
+                    statusEl.textContent = '✗ Access denied!';
+                    statusEl.className = 'error';
+                }
+            } catch (error) {
+                statusEl.textContent = '✗ Error: ' + error.message;
+                statusEl.className = 'error';
+                responseEl.value = error.message;
+            }
+        }
+
+        async function testRegister() {
+            const statusEl = document.getElementById('register-status');
+            const responseEl = document.getElementById('register-response');
+            
+            try {
+                statusEl.textContent = 'Testing...';
+                const username = 'testuser_' + Date.now();
+                const response = await fetch('http://localhost:3000/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: 'test123',
+                        role: 'user'
+                    })
+                });
+
+                const data = await response.json();
+                responseEl.value = JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    statusEl.textContent = '✓ Registration successful!';
+                    statusEl.className = 'success';
+                } else {
+                    statusEl.textContent = '✗ Registration failed!';
+                    statusEl.className = 'error';
+                }
+            } catch (error) {
+                statusEl.textContent = '✗ Error: ' + error.message;
+                statusEl.className = 'error';
+                responseEl.value = error.message;
+            }
+        }
+
+        // Auto-run login test on load
+        window.onload = () => {
+            testLogin();
+        };
+    </script>
+</body>
+</html>
