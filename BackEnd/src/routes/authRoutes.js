@@ -10,6 +10,13 @@ router.post(
     accountController.createAccount
 );
 
+router.put(
+    '/accounts/:id',
+    auth,
+    authorize('Admin'),
+    accountController.updateAccount
+);
+
 router.post('/login', authController.login);
 
 module.exports = router;

@@ -228,3 +228,125 @@ exports.createAccount = async (req, res) => {
 
     }
 };
+
+
+exports.updateAccount = async (req, res) => {
+
+    try {
+
+        const accountId = req.params.id;
+
+        const {
+            username,
+            role_id,
+            password
+        } = req.body;
+
+        // Kiểm tra tài khoản tồn tại
+
+        const [accounts] = await db.execute(
+            `
+            SELECT *
+            FROM account
+            WHERE account_id = ?
+            `,
+            [accountId]
+        );
+
+        if (accounts.length === 0) {
+            return res.status(404).json({
+                message: 'Tài khoản không tồn tại'
+            });
+        }
+
+        // Kiểm tra username trùng
+
+        if (username) {
+
+            const [existUsername] =
+                await db.execute(
+                    `
+                    SELECT account_id
+                    FROM account
+                    WHERE username = ?
+                    AND account_id <> ?
+                    `,
+                    [username, accountId]
+                );
+
+            if (existUsername.length > 0) {
+                return res.status(400).json({
+                    message: 'Username đã tồn tại'
+                });
+            }
+        }
+
+        // Kiểm tra role
+
+        if (role_id) {
+
+            const [roles] =
+                await db.execute(
+                    `
+                    SELECT role_id
+                    FROM role
+                    WHERE role_id = ?
+                    `,
+                    [role_id]
+                );
+
+            if (roles.length === 0) {
+                return res.status(404).json({
+                    message: 'Role không tồn tại'
+                });
+            }
+        }
+
+        let sql = `
+            UPDATE account
+            SET
+                username = ?,
+                role_id = ?
+        `;
+
+        const params = [
+            username || accounts[0].username,
+            role_id || accounts[0].role_id
+        ];
+
+        // Nếu đổi mật khẩu
+
+        if (password) {
+
+            const hashedPassword =
+                await bcrypt.hash(password, 10);
+
+            sql += `,
+                password = ?
+            `;
+
+            params.push(hashedPassword);
+        }
+
+        sql += `
+            WHERE account_id = ?
+        `;
+
+        params.push(accountId);
+
+        await db.execute(sql, params);
+
+        return res.status(200).json({
+            message: 'Cập nhật tài khoản thành công'
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Lỗi server'
+        });
+
+    }
+};
