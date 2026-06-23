@@ -26,8 +26,12 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { employeeAPI } from '../services/api';
 import { toast } from 'sonner';
+import { useAuth } from '../hooks/useAuth';
 
+//employee management page
 export const EmployeePage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -158,24 +162,26 @@ export const EmployeePage = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Quản lý nhân viên</h1>
+          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Quản lý nhân viên</h1>
           <p className="text-slate-600 mt-1">Danh sách và thông tin nhân viên</p>
         </div>
-        <Button
-          onClick={() => handleOpenDialog()}
-          className="bg-[#3b82f6] hover:bg-[#2563eb]"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Thêm nhân viên
-        </Button>
+        {isAdmin && (
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Thêm nhân viên
+          </Button>
+        )}
       </div>
 
       {/* Search and Filter */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
@@ -196,7 +202,7 @@ export const EmployeePage = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Nhân viên</TableHead>
@@ -205,7 +211,7 @@ export const EmployeePage = () => {
                   <TableHead>Địa chỉ</TableHead>
                   <TableHead>Vị trí</TableHead>
                   <TableHead>Lương/giờ</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                  {isAdmin && <TableHead className="text-right">Thao tác</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -230,26 +236,28 @@ export const EmployeePage = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{employee.salary_rate.toLocaleString('vi-VN')}đ</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleOpenDialog(employee)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(employee.employee_id)}
-                          disabled={isDeleting}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                    {isAdmin && (
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleOpenDialog(employee)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDelete(employee.employee_id)}
+                            disabled={isDeleting}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -260,7 +268,7 @@ export const EmployeePage = () => {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {editingEmployee ? 'Chỉnh sửa nhân viên' : 'Thêm nhân viên mới'}
@@ -269,7 +277,7 @@ export const EmployeePage = () => {
               Điền thông tin nhân viên vào form bên dưới
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
+          <div className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="full_name">Họ và tên *</Label>
               <Input
@@ -323,7 +331,7 @@ export const EmployeePage = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="col-span-2 space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="address">Địa chỉ</Label>
               <Input
                 id="address"

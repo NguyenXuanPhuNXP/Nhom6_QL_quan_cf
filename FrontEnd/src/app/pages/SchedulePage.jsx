@@ -98,9 +98,9 @@ export const SchedulePage = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Phân ca làm việc</h1>
+          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Phân ca làm việc</h1>
           <p className="text-slate-600 mt-1">Quản lý lịch làm việc theo tuần</p>
         </div>
         <Button
@@ -112,7 +112,7 @@ export const SchedulePage = () => {
             });
             setIsDialogOpen(true);
           }}
-          className="bg-[#3b82f6] hover:bg-[#2563eb]"
+          className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Thêm lịch
@@ -122,14 +122,14 @@ export const SchedulePage = () => {
       {/* Week Navigation */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Button
               variant="outline"
               onClick={() => setCurrentWeek(addDays(currentWeek, -7))}
             >
               ← Tuần trước
             </Button>
-            <div className="flex items-center gap-2">
+            <div className="order-first flex items-center justify-center gap-2 sm:order-none">
               <CalendarIcon className="w-5 h-5 text-slate-600" />
               <span className="font-medium text-slate-800">
                 {format(weekDays[0], 'dd/MM/yyyy', { locale: vi })} -{' '}
@@ -153,7 +153,7 @@ export const SchedulePage = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[900px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[200px]">Nhân viên</TableHead>
@@ -233,7 +233,7 @@ export const SchedulePage = () => {
 
       {/* Add Schedule Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Thêm lịch làm việc</DialogTitle>
             <DialogDescription>

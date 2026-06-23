@@ -79,12 +79,12 @@ export const PayrollPage = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Bảng lương</h1>
+          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Bảng lương</h1>
           <p className="text-slate-600 mt-1">Quản lý lương và thưởng phạt nhân viên</p>
         </div>
-        <Button onClick={handleExport} className="bg-green-600 hover:bg-green-700">
+        <Button onClick={handleExport} className="w-full bg-green-600 hover:bg-green-700 sm:w-auto">
           <Download className="w-4 h-4 mr-2" />
           Xuất báo cáo
         </Button>
@@ -94,13 +94,13 @@ export const PayrollPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
           <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <label className="text-sm font-medium text-slate-700">Chọn tháng/năm:</label>
               <Select
                 value={selectedMonth.toString()}
                 onValueChange={(value) => setSelectedMonth(Number(value))}
               >
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[150px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -115,7 +115,7 @@ export const PayrollPage = () => {
                 value={selectedYear.toString()}
                 onValueChange={(value) => setSelectedYear(Number(value))}
               >
-                <SelectTrigger className="w-[120px]">
+                <SelectTrigger className="w-full sm:w-[120px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -156,7 +156,7 @@ export const PayrollPage = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[780px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Nhân viên</TableHead>
