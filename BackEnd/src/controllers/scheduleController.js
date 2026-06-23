@@ -410,3 +410,40 @@ exports.deleteShift = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
+
+exports.getByEmployee = async (req, res) => {
+    try {
+        const { employeeId } = req.params;
+        const [schedules] = await db.execute(
+            `
+            SELECT
+                s.schedule_id,
+                s.work_date,
+                s.status,
+                sh.shift_id,
+                sh.shift_name,
+                sh.start_time,
+                sh.end_time,
+                sh.salary_multiplier
+            FROM schedule s
+            JOIN shift sh
+                ON s.shift_id = sh.shift_id
+            WHERE s.employee_id = ?
+            ORDER BY
+                s.work_date ASC,
+                sh.start_time ASC
+            `,
+            [employeeId]
+        );
+        return res.status(200).json({
+            success: true,
+            data: schedules
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            success: false,
+            message: 'Lỗi server'
+        });
+    }
+};
