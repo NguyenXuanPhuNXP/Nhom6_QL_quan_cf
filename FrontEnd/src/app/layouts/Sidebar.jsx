@@ -10,20 +10,28 @@ import {
   User,
   Coffee,
   X,
+  Shield,
 } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: Users, label: 'Nhân viên', path: '/employees' },
-  { icon: Calendar, label: 'Phân ca', path: '/schedule' },
-  { icon: ClipboardCheck, label: 'Chấm công', path: '/attendance' },
-  { icon: DollarSign, label: 'Lương', path: '/payroll' },
-  { icon: FileText, label: 'Nghỉ phép', path: '/leave-requests' },
-  { icon: Bell, label: 'Thông báo', path: '/notifications' },
-  { icon: User, label: 'Hồ sơ', path: '/profile' },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', adminOnly: false },
+  { icon: Users, label: 'Nhân viên', path: '/employees', adminOnly: false },
+  { icon: Shield, label: 'Tài khoản', path: '/accounts', adminOnly: true },
+  { icon: Calendar, label: 'Phân ca', path: '/schedule', adminOnly: false },
+  { icon: ClipboardCheck, label: 'Chấm công', path: '/attendance', adminOnly: false },
+  { icon: DollarSign, label: 'Lương', path: '/payroll', adminOnly: false },
+  { icon: FileText, label: 'Nghỉ phép', path: '/leave-requests', adminOnly: false },
+  { icon: Bell, label: 'Thông báo', path: '/notifications', adminOnly: false },
+  { icon: User, label: 'Hồ sơ', path: '/profile', adminOnly: false },
 ];
 
 export const Sidebar = ({ isOpen = false, onClose }) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
+  
+  const filteredMenuItems = menuItems.filter(item => !item.adminOnly || isAdmin);
+
   return (
     <>
       {isOpen && (
@@ -62,7 +70,7 @@ export const Sidebar = ({ isOpen = false, onClose }) => {
 
         <nav className="flex-1 overflow-y-auto p-4">
           <ul className="space-y-1">
-            {menuItems.map((item) => (
+            {filteredMenuItems.map((item) => (
               <li key={item.path}>
                 <NavLink
                   to={item.path}

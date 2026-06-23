@@ -8,6 +8,7 @@ import { PayrollPage } from './pages/PayrollPage';
 import { LeaveRequestPage } from './pages/LeaveRequestPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AccountPage } from './pages/AccountPage';
 import { MainLayout } from './layouts/MainLayout';
 
 export const router = createBrowserRouter([
@@ -26,6 +27,10 @@ export const router = createBrowserRouter([
       {
         path: 'employees',
         element: <EmployeePage />,
+      },
+      {
+        path: 'accounts',
+        element: <AccountPage />,
       },
       {
         path: 'schedule',

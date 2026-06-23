@@ -292,3 +292,115 @@ export const notificationAPI = {
     }
   },
 };
+
+// ============================================================
+// Account Management API (uses real backend)
+// ============================================================
+const API_URL = 'http://localhost:3000';
+
+const getAuthHeaders = () => {
+  const stored = localStorage.getItem('user');
+  if (stored) {
+    try {
+      const user = JSON.parse(stored);
+      if (user.token) {
+        return {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        };
+      }
+    } catch (_) {}
+  }
+  return { 'Content-Type': 'application/json' };
+};
+
+export const accountAPI = {
+  getAll: async () => {
+    const res = await fetch(`${API_URL}/api/accounts`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải danh sách tài khoản');
+    }
+    return res.json();
+  },
+
+  getById: async (id) => {
+    const res = await fetch(`${API_URL}/api/accounts/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Không tìm thấy tài khoản');
+    }
+    return res.json();
+  },
+
+  create: async (data) => {
+    const res = await fetch(`${API_URL}/api/accounts`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tạo tài khoản');
+    }
+    return res.json();
+  },
+
+  update: async (id, data) => {
+    const res = await fetch(`${API_URL}/api/accounts/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi cập nhật tài khoản');
+    }
+    return res.json();
+  },
+
+  delete: async (id) => {
+    const res = await fetch(`${API_URL}/api/accounts/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi xóa tài khoản');
+    }
+    return res.json();
+  },
+
+  getRoles: async () => {
+    const res = await fetch(`${API_URL}/api/accounts/roles`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải danh sách role');
+    }
+    return res.json();
+  },
+
+  getEmployeesWithoutAccount: async () => {
+    // Get all employees, then filter client-side
+    const resEmp = await fetch(`${API_URL}/auth/employees`, {
+      headers: getAuthHeaders(),
+    });
+    if (!resEmp.ok) throw new Error('Lỗi khi tải danh sách nhân viên');
+    const employees = await resEmp.json();
+
+    const resAcc = await fetch(`${API_URL}/api/accounts`, {
+      headers: getAuthHeaders(),
+    });
+    if (!resAcc.ok) throw new Error('Lỗi khi tải danh sách tài khoản');
+    const accounts = await resAcc.json();
+
+    const usedEmployeeIds = new Set(accounts.map((a) => a.employee_id));
+    return employees.filter((e) => !usedEmployeeIds.has(e.employee_id));
+  },
+};
