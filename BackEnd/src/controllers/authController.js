@@ -41,7 +41,11 @@ exports.login = async (req, res) => {
         }
 
         const account = accounts[0];
-
+if (account.status === 'Locked') {
+    return res.status(403).json({
+        message: 'Tài khoản đã bị khóa'
+    });
+}
         // Nếu password đã hash bằng bcrypt
         const isMatch = await bcrypt.compare(
             password,
@@ -338,6 +342,68 @@ exports.updateAccount = async (req, res) => {
 
         return res.status(200).json({
             message: 'Cập nhật tài khoản thành công'
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Lỗi server'
+        });
+
+    }
+};
+
+exports.changeStatus = async (req, res) => {
+
+    try {
+
+        const accountId = req.params.id;
+        const { status } = req.body;
+
+        // Chỉ cho phép 2 trạng thái
+        const validStatus = ['Active', 'Locked'];
+
+        if (!validStatus.includes(status)) {
+            return res.status(400).json({
+                message: 'Trạng thái không hợp lệ'
+            });
+        }
+
+        // Kiểm tra tài khoản tồn tại
+
+        const [accounts] = await db.execute(
+            `
+            SELECT account_id
+            FROM account
+            WHERE account_id = ?
+            `,
+            [accountId]
+        );
+
+        if (accounts.length === 0) {
+            return res.status(404).json({
+                message: 'Tài khoản không tồn tại'
+            });
+        }
+
+        // Cập nhật trạng thái
+
+        await db.execute(
+            `
+            UPDATE account
+            SET status = ?
+            WHERE account_id = ?
+            `,
+            [status, accountId]
+        );
+
+        return res.status(200).json({
+            message:
+                status === 'Locked'
+                    ? 'Khóa tài khoản thành công'
+                    : 'Mở khóa tài khoản thành công'
         });
 
     } catch (error) {
