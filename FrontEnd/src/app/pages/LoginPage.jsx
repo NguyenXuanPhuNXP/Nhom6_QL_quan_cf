@@ -208,6 +208,16 @@ export const LoginPage = () => {
             >
                 {isRegistering ? 'Đăng nhập ngay' : 'Đăng ký ngay'}
             </button>
+          <div className="mt-6 pt-4 border-t text-center">
+            <p className="text-sm text-slate-600 mb-3">Chưa có tài khoản?</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate('/register')}
+            >
+              Tạo tài khoản mới
+            </Button>
           </div>
         </CardContent>
       </Card>
