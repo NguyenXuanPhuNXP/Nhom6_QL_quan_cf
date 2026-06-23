@@ -38,7 +38,7 @@ export const Sidebar = () => {
         </div>
       </div>
 
-      {/* Navigation */}
+      
       <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-1">
           {menuItems.map((item) => (
