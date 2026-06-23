@@ -416,3 +416,262 @@ exports.changeStatus = async (req, res) => {
 
     }
 };
+
+exports.getAllEmployees = async (req, res) => {
+
+    try {
+
+        const [rows] = await db.execute(`
+            SELECT
+                e.employee_id,
+                e.full_name,
+                e.gender,
+                e.phone,
+                e.address,
+                e.salary_rate,
+                e.created_at,
+                p.position_name
+            FROM employee e
+            JOIN positions p
+                ON e.position_id = p.position_id
+            ORDER BY e.employee_id DESC
+        `);
+
+        return res.status(200).json(rows);
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Lỗi server'
+        });
+
+    }
+};
+exports.getEmployeeById = async (req, res) => {
+
+    try {
+
+        const employeeId = req.params.id;
+
+        const [rows] = await db.execute(
+            `
+            SELECT
+                e.*,
+                p.position_name
+            FROM employee e
+            JOIN positions p
+                ON e.position_id = p.position_id
+            WHERE e.employee_id = ?
+            `,
+            [employeeId]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                message: 'Không tìm thấy nhân viên'
+            });
+        }
+
+        return res.status(200).json(rows[0]);
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Lỗi server'
+        });
+
+    }
+};
+exports.createEmployee = async (req, res) => {
+
+    try {
+
+        const {
+            full_name,
+            gender,
+            phone,
+            address,
+            position_id,
+            salary_rate
+        } = req.body;
+
+        if (
+            !full_name ||
+            !gender ||
+            !position_id
+        ) {
+            return res.status(400).json({
+                message: 'Thiếu dữ liệu bắt buộc'
+            });
+        }
+
+        const [phoneExist] =
+            await db.execute(
+                `
+                SELECT employee_id
+                FROM employee
+                WHERE phone = ?
+                `,
+                [phone]
+            );
+
+        if (phoneExist.length > 0) {
+            return res.status(400).json({
+                message: 'Số điện thoại đã tồn tại'
+            });
+        }
+
+        const [result] = await db.execute(
+            `
+            INSERT INTO employee
+            (
+                full_name,
+                gender,
+                phone,
+                address,
+                position_id,
+                salary_rate
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            `,
+            [
+                full_name,
+                gender,
+                phone,
+                address,
+                position_id,
+                salary_rate || 0
+            ]
+        );
+
+        return res.status(201).json({
+            message: 'Thêm nhân viên thành công',
+            employee_id: result.insertId
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Lỗi server'
+        });
+
+    }
+};
+exports.updateEmployee = async (req, res) => {
+
+    try {
+
+        const employeeId = req.params.id;
+
+        const {
+            full_name,
+            gender,
+            phone,
+            address,
+            position_id,
+            salary_rate
+        } = req.body;
+
+        const [employees] =
+            await db.execute(
+                `
+                SELECT *
+                FROM employee
+                WHERE employee_id = ?
+                `,
+                [employeeId]
+            );
+
+        if (employees.length === 0) {
+            return res.status(404).json({
+                message: 'Không tìm thấy nhân viên'
+            });
+        }
+
+        await db.execute(
+            `
+            UPDATE employee
+            SET
+                full_name = ?,
+                gender = ?,
+                phone = ?,
+                address = ?,
+                position_id = ?,
+                salary_rate = ?
+            WHERE employee_id = ?
+            `,
+            [
+                full_name,
+                gender,
+                phone,
+                address,
+                position_id,
+                salary_rate,
+                employeeId
+            ]
+        );
+
+        return res.status(200).json({
+            message: 'Cập nhật nhân viên thành công'
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Lỗi server'
+        });
+
+    }
+};
+exports.deleteEmployee = async (req, res) => {
+
+    try {
+
+        const employeeId = req.params.id;
+
+        const [employees] =
+            await db.execute(
+                `
+                SELECT employee_id
+                FROM employee
+                WHERE employee_id = ?
+                `,
+                [employeeId]
+            );
+
+        if (employees.length === 0) {
+            return res.status(404).json({
+                message: 'Không tìm thấy nhân viên'
+            });
+        }
+
+        await db.execute(
+            `
+            DELETE FROM employee
+            WHERE employee_id = ?
+            `,
+            [employeeId]
+        );
+
+        return res.status(200).json({
+            message: 'Xóa nhân viên thành công'
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            message: 'Không thể xóa nhân viên'
+        });
+
+    }
+};
