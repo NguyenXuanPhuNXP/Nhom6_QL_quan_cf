@@ -26,7 +26,7 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { employeeAPI } from '../services/api';
 import { toast } from 'sonner';
-
+//employee management page
 export const EmployeePage = () => {
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
