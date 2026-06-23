@@ -13,22 +13,39 @@ exports.login = async (req, res) => {
             });
         }
 
-        const [users] = await db.execute(
-            'SELECT * FROM users WHERE username = ?',
+        const [accounts] = await db.execute(
+            `
+            SELECT
+                a.account_id,
+                a.username,
+                a.password,
+                a.employee_id,
+                r.role_id,
+                r.role_name,
+                e.full_name,
+                e.position_id
+            FROM account a
+            INNER JOIN role r
+                ON a.role_id = r.role_id
+            INNER JOIN employee e
+                ON a.employee_id = e.employee_id
+            WHERE a.username = ?
+            `,
             [username]
         );
 
-        if (users.length === 0) {
+        if (accounts.length === 0) {
             return res.status(401).json({
                 message: 'Tài khoản không tồn tại'
             });
         }
 
-        const user = users[0];
+        const account = accounts[0];
 
+        // Nếu password đã hash bằng bcrypt
         const isMatch = await bcrypt.compare(
             password,
-            user.password
+            account.password
         );
 
         if (!isMatch) {
@@ -39,9 +56,11 @@ exports.login = async (req, res) => {
 
         const token = jwt.sign(
             {
-                id: user.id,
-                username: user.username,
-                role: user.role
+                account_id: account.account_id,
+                employee_id: account.employee_id,
+                username: account.username,
+                role_id: account.role_id,
+                role_name: account.role_name
             },
             process.env.JWT_SECRET,
             {
@@ -49,21 +68,26 @@ exports.login = async (req, res) => {
             }
         );
 
-        res.status(200).json({
+        return res.status(200).json({
             message: 'Đăng nhập thành công',
             token,
             user: {
-                id: user.id,
-                username: user.username,
-                role: user.role
+                account_id: account.account_id,
+                employee_id: account.employee_id,
+                full_name: account.full_name,
+                username: account.username,
+                role_id: account.role_id,
+                role_name: account.role_name
             }
         });
 
     } catch (error) {
-        console.log(error);
 
-        res.status(500).json({
+        console.error(error);
+
+        return res.status(500).json({
             message: 'Lỗi server'
         });
+
     }
 };
