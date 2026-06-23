@@ -56,12 +56,12 @@ export const DashboardPage = () => {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Dashboard</h1>
         <p className="text-slate-600 mt-1">Tổng quan hệ thống quản lý</p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
         <StatCard
           title="Tổng nhân viên"
           value={stats?.totalEmployees || 0}
@@ -93,7 +93,7 @@ export const DashboardPage = () => {
       </div>
 
       {/* Charts and Schedule Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
         {/* Attendance Chart */}
         <Card>
           <CardHeader>
@@ -128,7 +128,7 @@ export const DashboardPage = () => {
           </CardHeader>
           <CardContent>
             <div className="overflow-auto max-h-[300px]">
-              <Table>
+              <Table className="min-w-[520px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nhân viên</TableHead>

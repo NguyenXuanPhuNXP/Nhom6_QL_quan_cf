@@ -130,9 +130,9 @@ export const LeaveRequestPage = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Đơn nghỉ phép</h1>
+          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Đơn nghỉ phép</h1>
           <p className="text-slate-600 mt-1">Quản lý đơn xin nghỉ phép của nhân viên</p>
         </div>
         <Button
@@ -144,7 +144,7 @@ export const LeaveRequestPage = () => {
             });
             setIsDialogOpen(true);
           }}
-          className="bg-[#3b82f6] hover:bg-[#2563eb]"
+          className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
         >
           <Plus className="w-4 h-4 mr-2" />
           Tạo đơn mới
@@ -188,7 +188,7 @@ export const LeaveRequestPage = () => {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <Table>
+            <Table className="min-w-[780px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Nhân viên</TableHead>
@@ -270,7 +270,7 @@ export const LeaveRequestPage = () => {
 
       {/* Add Leave Request Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Tạo đơn nghỉ phép</DialogTitle>
             <DialogDescription>Điền thông tin đơn xin nghỉ phép</DialogDescription>

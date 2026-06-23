@@ -1,4 +1,4 @@
-import { Bell, LogOut, User } from 'lucide-react';
+import { Bell, LogOut, Menu, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router';
 import { Avatar, AvatarFallback } from '../components/ui/avatar';
@@ -12,7 +12,7 @@ import {
 } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
 
-export const Header = () => {
+export const Header = ({ onOpenSidebar }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -31,12 +31,22 @@ export const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-64 right-0 h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 z-10">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-800">
+    <header className="fixed top-0 left-0 right-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 sm:px-6 md:left-64">
+      <div className="flex min-w-0 items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="shrink-0 md:hidden"
+          onClick={onOpenSidebar}
+          aria-label="Mo menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <div className="min-w-0">
+        <h2 className="truncate text-base font-semibold text-slate-800 sm:text-xl">
           Xin chào, {user?.employee.full_name}!
         </h2>
-        <p className="text-sm text-slate-500">
+        <p className="hidden text-sm text-slate-500 sm:block">
           {new Date().toLocaleDateString('vi-VN', {
             weekday: 'long',
             year: 'numeric',
@@ -44,9 +54,10 @@ export const Header = () => {
             day: 'numeric',
           })}
         </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {/* Notifications */}
         <Button
           variant="ghost"
@@ -61,13 +72,13 @@ export const Header = () => {
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 hover:bg-slate-50 px-3 py-2 rounded-lg transition-colors">
+            <button className="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50 sm:gap-3 sm:px-3">
               <Avatar>
                 <AvatarFallback className="bg-[#3b82f6] text-white">
                   {user?.employee.full_name && getInitials(user.employee.full_name)}
                 </AvatarFallback>
               </Avatar>
-              <div className="text-left">
+              <div className="hidden text-left sm:block">
                 <p className="text-sm font-medium text-slate-800">
                   {user?.employee.full_name}
                 </p>
