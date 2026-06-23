@@ -62,7 +62,7 @@ exports.login = async (req, res) => {
                 role_id: account.role_id,
                 role_name: account.role_name
             },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'my_super_secret_key',
             {
                 expiresIn: '1d'
             }
@@ -89,6 +89,141 @@ exports.login = async (req, res) => {
             message: 'Lỗi server'
         });
 
+    }
+};
+
+exports.register = async (req, res) => {
+    try {
+        const { username, password, confirmPassword, full_name, phone, address, email } = req.body;
+
+        // Validation
+        if (!username || !password || !full_name) {
+            return res.status(400).json({
+                message: 'Username, password, và full_name là bắt buộc'
+            });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                message: 'Mật khẩu xác nhận không khớp'
+            });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({
+                message: 'Mật khẩu phải có ít nhất 6 ký tự'
+            });
+        }
+
+        // Check username exists
+        const [existUsername] = await db.execute(
+            'SELECT account_id FROM account WHERE username = ?',
+            [username]
+        );
+
+        if (existUsername.length > 0) {
+            return res.status(400).json({
+                message: 'Username đã tồn tại'
+            });
+        }
+
+        // Get default position
+        let [positions] = await db.execute(
+            'SELECT position_id FROM positions LIMIT 1'
+        );
+        let positionId = 1;
+        if (positions.length > 0) {
+            positionId = positions[0].position_id;
+        } else {
+            // Auto-create default position if table is empty
+            const [newPos] = await db.execute(
+                'INSERT INTO positions (position_name) VALUES (?)',
+                ['Nhân viên mới']
+            );
+            positionId = newPos.insertId;
+        }
+
+        // Create employee with default gender 'Nam'
+        const [employeeResult] = await db.execute(
+            `INSERT INTO employee (full_name, gender, phone, address, position_id, created_at)
+             VALUES (?, 'Nam', ?, ?, ?, NOW())`,
+            [full_name, phone || null, address || null, positionId]
+        );
+
+        const employeeId = employeeResult.insertId;
+
+        // Get default role for new registrations
+        let [roles] = await db.execute(
+            'SELECT role_id, role_name FROM role WHERE role_name = ? OR role_name = ?',
+            ['Staff', 'Nhân viên']
+        );
+        
+        let roleId;
+        let roleName;
+
+        if (roles.length > 0) {
+            roleId = roles[0].role_id;
+            roleName = roles[0].role_name;
+        } else {
+            // Fallback to any role that is not Admin
+            [roles] = await db.execute('SELECT role_id, role_name FROM role WHERE role_name != ? LIMIT 1', ['Admin']);
+            if (roles.length > 0) {
+                roleId = roles[0].role_id;
+                roleName = roles[0].role_name;
+            } else {
+                // Absolute fallback: create 'Staff' role
+                const [newRole] = await db.execute(
+                    'INSERT INTO role (role_name) VALUES (?)',
+                    ['Staff']
+                );
+                roleId = newRole.insertId;
+                roleName = 'Staff';
+            }
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create account
+        const [accountResult] = await db.execute(
+            `INSERT INTO account (username, password, role_id, employee_id)
+             VALUES (?, ?, ?, ?)`,
+            [username, hashedPassword, roleId, employeeId]
+        );
+
+        const accountId = accountResult.insertId;
+
+        // Generate token
+        const token = jwt.sign(
+            {
+                account_id: accountId,
+                employee_id: employeeId,
+                username: username,
+                role_id: roleId,
+                role_name: roleName
+            },
+            process.env.JWT_SECRET || 'my_super_secret_key',
+            { expiresIn: '1d' }
+        );
+
+        return res.status(201).json({
+            message: 'Đăng ký thành công',
+            token,
+            user: {
+                account_id: accountId,
+                employee_id: employeeId,
+                full_name: full_name,
+                username: username,
+                role_id: roleId,
+                role_name: roleName
+            }
+        });
+
+    } catch (error) {
+        console.error("Register Error:", error);
+        return res.status(500).json({
+            message: 'Lỗi server: ' + error.message
+        });
     }
 };
 

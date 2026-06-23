@@ -123,13 +123,17 @@ export const LoginPage = () => {
             </Button>
           </form>
 
-          {/* <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-            <p className="text-xs text-slate-600 mb-2 font-medium">Tài khoản demo:</p>
-            <div className="text-xs text-slate-500 space-y-1">
-              <p>Admin: admin / admin123</p>
-              <p>Nhân viên: binh / binh123</p>
-            </div>
-          </div> */}
+          <div className="mt-6 pt-4 border-t text-center">
+            <p className="text-sm text-slate-600 mb-3">Chưa có tài khoản?</p>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate('/register')}
+            >
+              Tạo tài khoản mới
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
