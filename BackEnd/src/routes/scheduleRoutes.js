@@ -9,6 +9,7 @@ router.get('/', auth, scheduleController.getAll);
 router.get('/week', auth, scheduleController.getByWeek);
 router.get('/shifts', auth, scheduleController.getAllShifts);
 router.get('/employees', auth, scheduleController.getEmployees);
+router.get('/employee/:employeeId', auth, scheduleController.getByEmployee);
 
 // Only Admin & Quản lý can create/update/delete schedules
 router.post('/', auth, authorize('Admin', 'Quản lý'), scheduleController.create);
