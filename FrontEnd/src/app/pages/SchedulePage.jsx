@@ -72,7 +72,7 @@ export const SchedulePage = () => {
     shift_id: '',
     work_date: '',
   });
-////
+//
   useEffect(() => {
     fetchData();
   }, []);
