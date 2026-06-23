@@ -5,6 +5,10 @@ const db = mysql.createPool({
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '123456',
     database: process.env.DB_NAME || 'quanlycaphe'
+    host: 'localhost',
+    user: 'root',
+    password: '123456',
+    database: 'quanlycaphe'
 });
 
 module.exports = db.promise();
