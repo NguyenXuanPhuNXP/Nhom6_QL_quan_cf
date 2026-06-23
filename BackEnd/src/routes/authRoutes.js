@@ -16,6 +16,12 @@ router.put(
     authorize('Admin'),
     accountController.updateAccount
 );
+router.patch(
+    '/accounts/:id/status',
+    auth,
+    authorize('Admin'),
+    accountController.changeStatus
+);
 
 router.post('/login', authController.login);
 
