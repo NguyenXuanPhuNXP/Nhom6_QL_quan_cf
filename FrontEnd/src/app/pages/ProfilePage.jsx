@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { useAuth } from '../hooks/useAuth';
+import { employeeAPI } from '../services/api';
 import { toast } from 'sonner';
 
 export const ProfilePage = () => {
-  const { user } = useAuth();
+  const { user, login } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     full_name: user?.employee.full_name || '',
@@ -32,9 +33,29 @@ export const ProfilePage = () => {
       .slice(0, 2);
   };
 
+  const [avatarPreview, setAvatarPreview] = useState(user?.employee?.avatar || null);
+
   const handleUpdateProfile = () => {
-    toast.success('Cập nhật thông tin thành công');
-    setIsEditing(false);
+    (async () => {
+      try {
+        const updatedEmployee = {
+          ...user.employee,
+          ...profileData,
+          avatar: avatarPreview,
+        };
+
+        const res = await employeeAPI.update(user.employee.employee_id, updatedEmployee);
+        // update auth user in context/localStorage
+        const updatedUser = { ...user, employee: res };
+        login(updatedUser);
+
+        toast.success('Cập nhật thông tin thành công');
+        setIsEditing(false);
+      } catch (err) {
+        console.error(err);
+        toast.error('Lưu avatar/thông tin thất bại');
+      }
+    })();
   };
 
   const handleChangePassword = () => {
@@ -76,11 +97,37 @@ export const ProfilePage = () => {
         <Card className="lg:col-span-1">
           <CardContent className="pt-6">
             <div className="text-center">
-              <Avatar className="w-24 h-24 mx-auto mb-4">
-                <AvatarFallback className="bg-[#3b82f6] text-white text-2xl">
-                  {getInitials(user.employee.full_name)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="flex flex-col items-center mb-4">
+                <Avatar className="w-24 h-24">
+                  {avatarPreview ? (
+                    <AvatarImage src={avatarPreview} alt={user.employee.full_name} />
+                  ) : (
+                    <AvatarFallback className="bg-[#3b82f6] text-white text-2xl">
+                      {getInitials(user.employee.full_name)}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                {isEditing && (
+                  <div className="mt-2 text-center">
+                    <input
+                      id="avatarInput"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files && e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setAvatarPreview(reader.result);
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                    />
+                    <label htmlFor="avatarInput" className="text-xs text-slate-600 cursor-pointer underline">Thay ảnh</label>
+                  </div>
+                )}
+              </div>
               <h3 className="text-xl font-bold text-slate-800 mb-1">
                 {user.employee.full_name}
               </h3>

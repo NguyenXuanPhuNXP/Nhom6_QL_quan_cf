@@ -1,7 +1,7 @@
 import { Bell, LogOut, Menu, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router';
-import { Avatar, AvatarFallback } from '../components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,9 +74,13 @@ export const Header = ({ onOpenSidebar }) => {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50 sm:gap-3 sm:px-3">
               <Avatar>
-                <AvatarFallback className="bg-[#3b82f6] text-white">
-                  {user?.employee.full_name && getInitials(user.employee.full_name)}
-                </AvatarFallback>
+                {user?.employee?.avatar ? (
+                  <AvatarImage src={user.employee.avatar} alt={user.employee.full_name} />
+                ) : (
+                  <AvatarFallback className="bg-[#3b82f6] text-white">
+                    {user?.employee.full_name && getInitials(user.employee.full_name)}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <div className="hidden text-left sm:block">
                 <p className="text-sm font-medium text-slate-800">

@@ -2,6 +2,7 @@ export const mockEmployees = [
   {
     employee_id: 1,
     full_name: 'Nguyễn Văn An',
+    avatar: null,
     gender: 'Nam',
     phone: '0901234567',
     address: '123 Lê Lợi, Q1, TP.HCM',
@@ -12,6 +13,7 @@ export const mockEmployees = [
   {
     employee_id: 2,
     full_name: 'Trần Thị Bình',
+    avatar: null,
     gender: 'Nữ',
     phone: '0902345678',
     address: '456 Nguyễn Huệ, Q1, TP.HCM',
@@ -22,6 +24,7 @@ export const mockEmployees = [
   {
     employee_id: 3,
     full_name: 'Lê Minh Châu',
+    avatar: null,
     gender: 'Nữ',
     phone: '0903456789',
     address: '789 Trần Hưng Đạo, Q5, TP.HCM',
@@ -32,6 +35,7 @@ export const mockEmployees = [
   {
     employee_id: 4,
     full_name: 'Phạm Quốc Dũng',
+    avatar: null,
     gender: 'Nam',
     phone: '0904567890',
     address: '321 Hai Bà Trưng, Q3, TP.HCM',
@@ -42,6 +46,7 @@ export const mockEmployees = [
   {
     employee_id: 5,
     full_name: 'Hoàng Thu Hà',
+    avatar: null,
     gender: 'Nữ',
     phone: '0905678901',
     address: '654 Võ Văn Tần, Q3, TP.HCM',
@@ -52,6 +57,7 @@ export const mockEmployees = [
   {
     employee_id: 6,
     full_name: 'Vũ Đức Khánh',
+    avatar: null,
     gender: 'Nam',
     phone: '0906789012',
     address: '987 Pasteur, Q1, TP.HCM',
