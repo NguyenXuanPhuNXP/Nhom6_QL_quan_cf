@@ -4,6 +4,7 @@ const app = express();
 
 const authRoutes = require('./src/routes/authRoutes');
 const accountRoutes = require('./src/routes/accountRoutes');
+const scheduleRoutes = require('./src/routes/scheduleRoutes');
 
 const PORT = process.env.PORT || 3000;
 
@@ -21,6 +22,7 @@ app.use('/auth', authRoutes);
 
 // API routes
 app.use('/api/accounts', accountRoutes);
+app.use('/api/schedules', scheduleRoutes);
 
 // Khởi động server
 app.listen(PORT, () => {

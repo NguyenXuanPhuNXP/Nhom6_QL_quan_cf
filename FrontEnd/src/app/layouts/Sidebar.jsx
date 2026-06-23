@@ -15,22 +15,22 @@ import {
 import { useAuth } from '../hooks/useAuth';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', adminOnly: false },
-  { icon: Users, label: 'Nhân viên', path: '/employees', adminOnly: false },
-  { icon: Shield, label: 'Tài khoản', path: '/accounts', adminOnly: true },
-  { icon: Calendar, label: 'Phân ca', path: '/schedule', adminOnly: false },
-  { icon: ClipboardCheck, label: 'Chấm công', path: '/attendance', adminOnly: false },
-  { icon: DollarSign, label: 'Lương', path: '/payroll', adminOnly: false },
-  { icon: FileText, label: 'Nghỉ phép', path: '/leave-requests', adminOnly: false },
-  { icon: Bell, label: 'Thông báo', path: '/notifications', adminOnly: false },
-  { icon: User, label: 'Hồ sơ', path: '/profile', adminOnly: false },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: Users, label: 'Nhân viên', path: '/employees', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: Shield, label: 'Tài khoản', path: '/accounts', roles: ['Admin'] },
+  { icon: Calendar, label: 'Phân ca', path: '/schedule', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: ClipboardCheck, label: 'Chấm công', path: '/attendance', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: DollarSign, label: 'Lương', path: '/payroll', roles: ['Admin', 'Quản lý'] },
+  { icon: FileText, label: 'Nghỉ phép', path: '/leave-requests', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: Bell, label: 'Thông báo', path: '/notifications', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: User, label: 'Hồ sơ', path: '/profile', roles: ['Admin', 'Quản lý', 'Staff'] },
 ];
 
 export const Sidebar = ({ isOpen = false, onClose }) => {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'Admin';
+  const userRole = user?.role || 'Staff';
   
-  const filteredMenuItems = menuItems.filter(item => !item.adminOnly || isAdmin);
+  const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
 
   return (
     <>
