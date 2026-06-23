@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, Calendar as CalendarIcon, Edit, Trash2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIcon, Edit, Trash2, Clock } from 'lucide-react';
 import { Loading } from '../components/Loading';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -49,14 +49,22 @@ const getAuthHeaders = () => {
 // Shift color mapping
 const SHIFT_COLORS = {
   'Ca sáng': '#3b82f6',
-  'Ca chiều': '#10b981',
-  'Ca tối': '#8b5cf6',
+  'Ca trưa': '#10b981',
+  'Ca chiều': '#8b5cf6',
 };
 const getShiftColor = (shiftName) => SHIFT_COLORS[shiftName] || '#6366f1';
 
+const normalizeRole = (role = '') =>
+  String(role)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
 export const SchedulePage = () => {
   const { user } = useAuth();
-  const canManage = user?.role === 'Admin' || user?.role === 'Quản lý';
+  const userRole = normalizeRole(user?.role);
+  const canManage = userRole === 'admin' || userRole === 'quan ly';
 
   const [schedules, setSchedules] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -67,12 +75,23 @@ export const SchedulePage = () => {
   const [editingSchedule, setEditingSchedule] = useState(null);
   const [deletingScheduleId, setDeletingScheduleId] = useState(null);
   const [currentWeek, setCurrentWeek] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  const [formData, setFormData] = useState({
+const [formData, setFormData] = useState({
     employee_id: '',
     shift_id: '',
     work_date: '',
   });
-////////
+
+  // Shift management state
+  const [isShiftDialogOpen, setIsShiftDialogOpen] = useState(false);
+  const [isDeleteShiftDialogOpen, setIsDeleteShiftDialogOpen] = useState(false);
+  const [editingShift, setEditingShift] = useState(null);
+  const [deletingShiftId, setDeletingShiftId] = useState(null);
+  const [shiftFormData, setShiftFormData] = useState({
+    shift_name: '',
+    start_time: '',
+    end_time: '',
+    salary_multiplier: 1,
+  });
   useEffect(() => {
     fetchData();
   }, []);
@@ -169,7 +188,7 @@ export const SchedulePage = () => {
     }
   };
 
-  const handleDelete = async () => {
+const handleDelete = async () => {
     if (!deletingScheduleId) return;
     try {
       const res = await fetch(`${API_URL}/api/schedules/${deletingScheduleId}`, {
@@ -184,6 +203,92 @@ export const SchedulePage = () => {
       toast.success('Xóa lịch thành công');
       setIsDeleteDialogOpen(false);
       setDeletingScheduleId(null);
+      fetchData();
+    } catch (error) {
+      toast.error('Có lỗi xảy ra');
+    }
+  };
+
+  // Shift management handlers
+  const handleOpenShiftDialog = (shift = null) => {
+    if (shift) {
+      setEditingShift(shift);
+      setShiftFormData({
+        shift_name: shift.shift_name,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        salary_multiplier: shift.salary_multiplier || 1,
+      });
+    } else {
+      setEditingShift(null);
+      setShiftFormData({
+        shift_name: '',
+        start_time: '06:00',
+        end_time: '11:00',
+        salary_multiplier: 1,
+      });
+    }
+    setIsShiftDialogOpen(true);
+  };
+
+  const handleShiftSubmit = async () => {
+    if (!shiftFormData.shift_name || !shiftFormData.start_time || !shiftFormData.end_time) {
+      toast.error('Vui lòng điền đầy đủ thông tin');
+      return;
+    }
+
+    try {
+      const payload = {
+        shift_name: shiftFormData.shift_name,
+        start_time: shiftFormData.start_time + ':00',
+        end_time: shiftFormData.end_time + ':00',
+        salary_multiplier: Number(shiftFormData.salary_multiplier),
+      };
+
+      let res;
+      if (editingShift) {
+        res = await fetch(`${API_URL}/api/schedules/shifts/${editingShift.shift_id}`, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+      } else {
+        res = await fetch(`${API_URL}/api/schedules/shifts`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || 'Có lỗi xảy ra');
+        return;
+      }
+
+      toast.success(editingShift ? 'Cập nhật ca thành công' : 'Thêm ca thành công');
+      setIsShiftDialogOpen(false);
+      fetchData();
+    } catch (error) {
+      toast.error('Có lỗi xảy ra');
+    }
+  };
+
+  const handleDeleteShift = async () => {
+    if (!deletingShiftId) return;
+    try {
+      const res = await fetch(`${API_URL}/api/schedules/shifts/${deletingShiftId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.message || 'Có lỗi xảy ra');
+        return;
+      }
+      toast.success('Xóa ca thành công');
+      setIsDeleteShiftDialogOpen(false);
+      setDeletingShiftId(null);
       fetchData();
     } catch (error) {
       toast.error('Có lỗi xảy ra');
@@ -356,10 +461,21 @@ export const SchedulePage = () => {
         </CardContent>
       </Card>
 
-      {/* Shift Legend */}
+{/* Shift Legend */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Chú thích ca làm</CardTitle>
+          {canManage && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenShiftDialog()}
+              className="text-xs"
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Thêm ca
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
@@ -376,6 +492,27 @@ export const SchedulePage = () => {
                 <span className="text-sm text-slate-600">
                   {shift.start_time} - {shift.end_time}
                 </span>
+                {canManage && (
+                  <div className="flex gap-1 ml-1">
+                    <button
+                      onClick={() => handleOpenShiftDialog(shift)}
+                      className="text-slate-400 hover:text-blue-500 transition-colors"
+                      title="Sửa"
+                    >
+                      <Edit className="w-3 h-3" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeletingShiftId(shift.shift_id);
+                        setIsDeleteShiftDialogOpen(true);
+                      }}
+                      className="text-slate-400 hover:text-red-500 transition-colors"
+                      title="Xóa"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -457,7 +594,7 @@ export const SchedulePage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+{/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -472,6 +609,106 @@ export const SchedulePage = () => {
             </Button>
             <Button 
               onClick={handleDelete} 
+              className="bg-red-500 hover:bg-red-600 text-white"
+            >
+              Xóa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add/Edit Shift Dialog */}
+      <Dialog open={isShiftDialogOpen} onOpenChange={setIsShiftDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingShift ? 'Chỉnh sửa ca làm' : 'Thêm ca làm mới'}
+            </DialogTitle>
+            <DialogDescription>
+              {editingShift ? 'Cập nhật thông tin ca làm việc' : 'Thêm ca làm việc mới vào hệ thống'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="shift_name">Tên ca *</Label>
+              <Input
+                id="shift_name"
+                value={shiftFormData.shift_name}
+                onChange={(e) =>
+                  setShiftFormData({ ...shiftFormData, shift_name: e.target.value })
+                }
+                placeholder="Ví dụ: Ca sáng, Ca trưa, Ca chiều"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start_time">Giờ bắt đầu *</Label>
+                <Input
+                  id="start_time"
+                  type="time"
+                  value={shiftFormData.start_time}
+                  onChange={(e) =>
+                    setShiftFormData({ ...shiftFormData, start_time: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end_time">Giờ kết thúc *</Label>
+                <Input
+                  id="end_time"
+                  type="time"
+                  value={shiftFormData.end_time}
+                  onChange={(e) =>
+                    setShiftFormData({ ...shiftFormData, end_time: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="salary_multiplier">Hệ số lương</Label>
+              <Input
+                id="salary_multiplier"
+                type="number"
+                step="0.1"
+                min="0.5"
+                max="3"
+                value={shiftFormData.salary_multiplier}
+                onChange={(e) =>
+                  setShiftFormData({ ...shiftFormData, salary_multiplier: e.target.value })
+                }
+                placeholder="1"
+              />
+              <p className="text-xs text-slate-500">
+                Hệ số lương mặc định là 1. Ví dụ: 1.5 cho ca tăng ca
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsShiftDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleShiftSubmit} className="bg-[#3b82f6] hover:bg-[#2563eb]">
+              {editingShift ? 'Cập nhật' : 'Thêm ca'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Shift Confirmation Dialog */}
+      <Dialog open={isDeleteShiftDialogOpen} onOpenChange={setIsDeleteShiftDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác nhận xóa ca</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa ca làm việc này? Lưu ý: Chỉ có thể xóa ca chưa được phân công.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteShiftDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button 
+              onClick={handleDeleteShift} 
               className="bg-red-500 hover:bg-red-600 text-white"
             >
               Xóa

@@ -1,5 +1,77 @@
 const db = require('../config/db');
 
+const DEFAULT_SHIFTS = [
+    { shift_name: 'Ca sáng', start_time: '06:00:00', end_time: '11:00:00', salary_multiplier: 1 },
+    { shift_name: 'Ca trưa', start_time: '11:00:00', end_time: '16:00:00', salary_multiplier: 1 },
+    { shift_name: 'Ca chiều', start_time: '16:00:00', end_time: '22:00:00', salary_multiplier: 1 }
+];
+
+const ensureDefaultShifts = async () => {
+    const [existingLunchShift] = await db.execute(
+        'SELECT shift_id FROM shift WHERE shift_name = ? LIMIT 1',
+        ['Ca trưa']
+    );
+
+    if (existingLunchShift.length === 0) {
+        const [oldNightShift] = await db.execute(
+            'SELECT shift_id FROM shift WHERE shift_name = ? LIMIT 1',
+            ['Ca tối']
+        );
+
+        if (oldNightShift.length > 0) {
+            await db.execute(
+                `UPDATE shift
+                 SET shift_name = ?, start_time = ?, end_time = ?, salary_multiplier = ?
+                 WHERE shift_id = ?`,
+                ['Ca trưa', '11:00:00', '16:00:00', 1, oldNightShift[0].shift_id]
+            );
+        }
+    }
+
+    for (const shift of DEFAULT_SHIFTS) {
+        const [existingByName] = await db.execute(
+            'SELECT shift_id FROM shift WHERE shift_name = ? LIMIT 1',
+            [shift.shift_name]
+        );
+
+        if (existingByName.length > 0) {
+            await db.execute(
+                `UPDATE shift
+                 SET start_time = ?, end_time = ?, salary_multiplier = ?
+                 WHERE shift_id = ?`,
+                [
+                    shift.start_time,
+                    shift.end_time,
+                    shift.salary_multiplier,
+                    existingByName[0].shift_id
+                ]
+            );
+            continue;
+        }
+
+        const [existingByTime] = await db.execute(
+            'SELECT shift_id FROM shift WHERE start_time = ? AND end_time = ? LIMIT 1',
+            [shift.start_time, shift.end_time]
+        );
+
+        if (existingByTime.length > 0) {
+            await db.execute(
+                `UPDATE shift
+                 SET shift_name = ?, salary_multiplier = ?
+                 WHERE shift_id = ?`,
+                [shift.shift_name, shift.salary_multiplier, existingByTime[0].shift_id]
+            );
+            continue;
+        }
+
+        await db.execute(
+            `INSERT INTO shift (shift_name, start_time, end_time, salary_multiplier)
+             VALUES (?, ?, ?, ?)`,
+            [shift.shift_name, shift.start_time, shift.end_time, shift.salary_multiplier]
+        );
+    }
+};
+
 // GET all schedules (with employee + shift info)
 exports.getAll = async (req, res) => {
     try {
@@ -193,8 +265,14 @@ exports.remove = async (req, res) => {
 // GET all shifts
 exports.getAllShifts = async (req, res) => {
     try {
+        await ensureDefaultShifts();
+
         const [rows] = await db.execute(
-            'SELECT shift_id, shift_name, start_time, end_time, salary_multiplier FROM shift ORDER BY start_time'
+            `SELECT shift_id, shift_name, start_time, end_time, salary_multiplier
+             FROM shift
+             WHERE shift_name IN (?, ?, ?)
+             ORDER BY start_time`,
+            DEFAULT_SHIFTS.map((shift) => shift.shift_name)
         );
         return res.status(200).json(rows);
     } catch (error) {
@@ -215,6 +293,120 @@ exports.getEmployees = async (req, res) => {
         return res.status(200).json(rows);
     } catch (error) {
         console.error('getEmployees error:', error);
+        return res.status(500).json({ message: 'Lỗi server: ' + error.message });
+    }
+};
+
+// POST create new shift
+exports.createShift = async (req, res) => {
+    try {
+        const { shift_name, start_time, end_time, salary_multiplier = 1 } = req.body;
+
+        if (!shift_name || !start_time || !end_time) {
+            return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' });
+        }
+
+        // Check duplicate name
+        const [existing] = await db.execute(
+            'SELECT shift_id FROM shift WHERE shift_name = ?',
+            [shift_name]
+        );
+        if (existing.length > 0) {
+            return res.status(400).json({ message: 'Tên ca đã tồn tại' });
+        }
+
+        const [result] = await db.execute(
+            `INSERT INTO shift (shift_name, start_time, end_time, salary_multiplier)
+             VALUES (?, ?, ?, ?)`,
+            [shift_name, start_time, end_time, salary_multiplier]
+        );
+
+        return res.status(201).json({
+            message: 'Thêm ca thành công',
+            shift_id: result.insertId
+        });
+    } catch (error) {
+        console.error('createShift error:', error);
+        return res.status(500).json({ message: 'Lỗi server: ' + error.message });
+    }
+};
+
+// PUT update shift
+exports.updateShift = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const { shift_name, start_time, end_time, salary_multiplier } = req.body;
+
+        const [exists] = await db.execute(
+            'SELECT shift_id FROM shift WHERE shift_id = ?',
+            [id]
+        );
+        if (exists.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy ca làm việc' });
+        }
+
+        // Check duplicate name (except current)
+        if (shift_name) {
+            const [existing] = await db.execute(
+                'SELECT shift_id FROM shift WHERE shift_name = ? AND shift_id != ?',
+                [shift_name, id]
+            );
+            if (existing.length > 0) {
+                return res.status(400).json({ message: 'Tên ca đã tồn tại' });
+            }
+        }
+
+        const updates = [];
+        const params = [];
+
+        if (shift_name) { updates.push('shift_name = ?'); params.push(shift_name); }
+        if (start_time) { updates.push('start_time = ?'); params.push(start_time); }
+        if (end_time) { updates.push('end_time = ?'); params.push(end_time); }
+        if (salary_multiplier !== undefined) { updates.push('salary_multiplier = ?'); params.push(salary_multiplier); }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ message: 'Không có dữ liệu cần cập nhật' });
+        }
+
+        params.push(id);
+        await db.execute(
+            `UPDATE shift SET ${updates.join(', ')} WHERE shift_id = ?`,
+            params
+        );
+
+        return res.status(200).json({ message: 'Cập nhật ca thành công' });
+    } catch (error) {
+        console.error('updateShift error:', error);
+        return res.status(500).json({ message: 'Lỗi server: ' + error.message });
+    }
+};
+
+// DELETE shift
+exports.deleteShift = async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        const [exists] = await db.execute(
+            'SELECT shift_id FROM shift WHERE shift_id = ?',
+            [id]
+        );
+        if (exists.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy ca làm việc' });
+        }
+
+        // Check if shift is in use
+        const [inUse] = await db.execute(
+            'SELECT schedule_id FROM schedule WHERE shift_id = ? LIMIT 1',
+            [id]
+        );
+        if (inUse.length > 0) {
+            return res.status(400).json({ message: 'Ca đang được sử dụng, không thể xóa' });
+        }
+
+        await db.execute('DELETE FROM shift WHERE shift_id = ?', [id]);
+        return res.status(200).json({ message: 'Xóa ca thành công' });
+    } catch (error) {
+        console.error('deleteShift error:', error);
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
