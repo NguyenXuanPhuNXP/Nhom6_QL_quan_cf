@@ -22,7 +22,7 @@ module.exports = (req, res, next) => {
 
         const decoded = jwt.verify(
             token,
-            process.env.JWT_SECRET
+            process.env.JWT_SECRET || 'my_super_secret_key'
         );
 
         req.user = decoded;

@@ -1,56 +1,18 @@
 const express = require('express');
 const router = express.Router();
-
 const authController = require('../controllers/authController');
+const auth = require('../middleware/auth');
+const authorize = require('../middleware/authorize');
 
-router.post(
-    '/accounts',
-    auth,
-    authorize('Admin'),
-    accountController.createAccount
-);
-
-router.put(
-    '/accounts/:id',
-    auth,
-    authorize('Admin'),
-    accountController.updateAccount
-);
-router.patch(
-    '/accounts/:id/status',
-    auth,
-    authorize('Admin'),
-    accountController.changeStatus
-);
-
+// Auth endpoints
 router.post('/login', authController.login);
+router.post('/register', authController.register);
 
-router.get(
-    '/employees',
-    auth,
-    employeeController.getAllEmployees
-);
-router.get(
-    '/employees/:id',
-    auth,
-    employeeController.getEmployeeById
-);
-router.post(
-    '/employees',
-    auth,
-    authorize('Admin'),
-    employeeController.createEmployee
-);
-router.put(
-    '/employees/:id',
-    auth,
-    authorize('Admin'),
-    employeeController.updateEmployee
-);
-router.delete(
-    '/employees/:id',
-    auth,
-    authorize('Admin'),
-    employeeController.deleteEmployee
-);
+// Employee endpoints (mapped to functions in authController as per Develop branch structure)
+router.get('/employees', auth, authController.getAllEmployees);
+router.get('/employees/:id', auth, authController.getEmployeeById);
+router.post('/employees', auth, authorize('Admin'), authController.createEmployee);
+router.put('/employees/:id', auth, authorize('Admin'), authController.updateEmployee);
+router.delete('/employees/:id', auth, authorize('Admin'), authController.deleteEmployee);
+
 module.exports = router;
