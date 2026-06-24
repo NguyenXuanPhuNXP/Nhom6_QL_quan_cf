@@ -109,7 +109,7 @@ exports.getAll = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
-// GET schedules by date range
+// GET scheduless by date range
 exports.getByWeek = async (req, res) => {
     try {
         const { start, end } = req.query;
@@ -288,6 +288,7 @@ exports.getEmployees = async (req, res) => {
 };
 
 // POST create new shift
+//
 exports.createShift = async (req, res) => {
     try {
         const { shift_name, start_time, end_time, salary_multiplier = 1 } = req.body;
