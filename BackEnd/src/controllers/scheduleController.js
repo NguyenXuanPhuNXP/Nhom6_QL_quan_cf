@@ -66,6 +66,7 @@ const ensureDefaultShifts = async () => {
         );
     }
 };
+
 // GET all schedules (with employee + shift info)
 exports.getAll = async (req, res) => {
     try {
@@ -109,6 +110,7 @@ exports.getAll = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
+
 // GET schedules by date range
 exports.getByWeek = async (req, res) => {
     try {
@@ -155,6 +157,7 @@ exports.getByWeek = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
+
 // POST create schedule (API phân ca)
 exports.create = async (req, res) => {
     try {
@@ -253,6 +256,7 @@ exports.remove = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
+
 // GET all shifts
 exports.getAllShifts = async (req, res) => {
     try {
@@ -271,6 +275,7 @@ exports.getAllShifts = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
+
 // GET all employees (for dropdown)
 exports.getEmployees = async (req, res) => {
     try {
@@ -287,7 +292,7 @@ exports.getEmployees = async (req, res) => {
     }
 };
 
-// POST create new shift
+// POST create new shift (ĐÃ BỔ SUNG VALIDATE)
 exports.createShift = async (req, res) => {
     try {
         const { shift_name, start_time, end_time, salary_multiplier = 1 } = req.body;
@@ -295,6 +300,16 @@ exports.createShift = async (req, res) => {
         if (!shift_name || !start_time || !end_time) {
             return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' });
         }
+
+        // --- BẮT ĐẦU HOÀN THIỆN VALIDATE ---
+        if (start_time === end_time) {
+            return res.status(400).json({ message: 'Thời gian bắt đầu và kết thúc ca không được trùng nhau' });
+        }
+
+        if (Number(salary_multiplier) < 1 || Number(salary_multiplier) > 5) {
+            return res.status(400).json({ message: 'Hệ số lương phải nằm trong khoảng từ 1 đến 5' });
+        }
+        // --- KẾT THÚC HOÀN THIỆN VALIDATE ---
 
         // Check duplicate name
         const [existing] = await db.execute(
@@ -321,19 +336,35 @@ exports.createShift = async (req, res) => {
     }
 };
 
-// PUT update shift
+// PUT update shift (ĐÃ BỔ SUNG VALIDATE)
 exports.updateShift = async (req, res) => {
     try {
         const id = req.params.id;
         const { shift_name, start_time, end_time, salary_multiplier } = req.body;
 
+        // Lấy thêm start_time và end_time hiện tại từ DB để phục vụ so sánh validate khi update lẻ trường
         const [exists] = await db.execute(
-            'SELECT shift_id FROM shift WHERE shift_id = ?',
+            'SELECT shift_id, start_time, end_time FROM shift WHERE shift_id = ?',
             [id]
         );
         if (exists.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy ca làm việc' });
         }
+
+        // --- BẮT ĐẦU HOÀN THIỆN VALIDATE ---
+        const finalStartTime = start_time || exists[0].start_time;
+        const finalEndTime = end_time || exists[0].end_time;
+
+        if (finalStartTime === finalEndTime) {
+            return res.status(400).json({ message: 'Thời gian bắt đầu và kết thúc ca không được trùng nhau' });
+        }
+
+        if (salary_multiplier !== undefined) {
+            if (Number(salary_multiplier) < 1 || Number(salary_multiplier) > 5) {
+                return res.status(400).json({ message: 'Hệ số lương phải nằm trong khoảng từ 1 đến 5' });
+            }
+        }
+        // --- KẾT THÚC HOÀN THIỆN VALIDATE ---
 
         // Check duplicate name (except current)
         if (shift_name) {
