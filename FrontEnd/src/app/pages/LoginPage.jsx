@@ -59,14 +59,34 @@ export const LoginPage = () => {
       const data = await response.json();
       
       if (response.ok && data.token) {
+        let employee = {
+          employee_id: data.user.employee_id,
+          full_name: data.user.full_name,
+        };
+
+        try {
+          const empRes = await fetch(
+            `http://localhost:3000/auth/employees/${data.user.employee_id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${data.token}`,
+              },
+            }
+          );
+          if (empRes.ok) {
+            const empData = await empRes.json();
+            employee = {
+              ...empData,
+              position: empData.position_name || empData.position,
+            };
+          }
+        } catch (_) {}
+
         login({
           id: data.user.account_id,
           username: data.user.username,
           role: data.user.role_name,
-          employee: {
-            employee_id: data.user.employee_id,
-            full_name: data.user.full_name,
-          },
+          employee,
         }, data.token);
         
         toast.success(isRegistering ? 'Đăng ký thành công!' : 'Đăng nhập thành công!');

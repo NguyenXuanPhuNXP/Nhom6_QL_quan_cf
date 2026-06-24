@@ -15,4 +15,7 @@ router.post('/employees', auth, authorize('Admin'), authController.createEmploye
 router.put('/employees/:id', auth, authorize('Admin'), authController.updateEmployee);
 router.delete('/employees/:id', auth, authorize('Admin'), authController.deleteEmployee);
 
+router.put('/profile', auth, authController.updateProfile);
+router.put('/change-password', auth, authController.changePassword);
+
 module.exports = router;

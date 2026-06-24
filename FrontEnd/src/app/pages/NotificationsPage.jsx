@@ -1,45 +1,18 @@
-import { useEffect, useState } from 'react';
 import { Bell, Check } from 'lucide-react';
 import { Loading } from '../components/Loading';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { notificationAPI } from '../services/api';
-import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { useAuth } from '../hooks/useAuth';
-//notificationsPage.jsx
+import { useNotifications } from '../hooks/useNotifications';
+import { toast } from 'sonner';
+
 export const NotificationsPage = () => {
-  const [notifications, setNotifications] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [user]);
-
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    setIsLoading(true);
-    try {
-      const data = await notificationAPI.getAll(user.employee.employee_id);
-      setNotifications(data);
-    } catch (error) {
-      toast.error('Lỗi khi tải thông báo');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { notifications, unreadCount, isLoading, markAsRead } = useNotifications();
 
   const handleMarkAsRead = async (id) => {
     try {
-      await notificationAPI.markAsRead(id);
-      setNotifications(
-        notifications.map((n) =>
-          n.notification_id === id ? { ...n, is_read: true } : n
-        )
-      );
+      await markAsRead(id);
       toast.success('Đã đánh dấu đã đọc');
     } catch (error) {
       toast.error('Có lỗi xảy ra');
@@ -50,11 +23,8 @@ export const NotificationsPage = () => {
     return <Loading />;
   }
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Thông báo</h1>
@@ -66,7 +36,6 @@ export const NotificationsPage = () => {
         </div>
       </div>
 
-      {/* Notifications List */}
       <div className="space-y-4">
         {notifications.length > 0 ? (
           notifications.map((notif) => (

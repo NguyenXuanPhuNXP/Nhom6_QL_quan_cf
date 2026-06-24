@@ -753,8 +753,21 @@ exports.updateEmployee = async (req, res) => {
             ]
         );
 
+        const [updated] = await db.execute(
+            `
+            SELECT
+                e.*,
+                p.position_name
+            FROM employee e
+            JOIN positions p ON e.position_id = p.position_id
+            WHERE e.employee_id = ?
+            `,
+            [employeeId]
+        );
+
         return res.status(200).json({
-            message: 'Cập nhật nhân viên thành công'
+            message: 'Cập nhật nhân viên thành công',
+            ...updated[0]
         });
 
     } catch (error) {
@@ -809,5 +822,86 @@ exports.deleteEmployee = async (req, res) => {
             message: 'Không thể xóa nhân viên'
         });
 
+    }
+};
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const employeeId = req.user.employee_id;
+        const { full_name, phone, address } = req.body;
+
+        if (!full_name) {
+            return res.status(400).json({ message: 'Họ tên là bắt buộc' });
+        }
+
+        await db.execute(
+            `UPDATE employee
+             SET full_name = ?, phone = ?, address = ?
+             WHERE employee_id = ?`,
+            [full_name, phone || null, address || null, employeeId]
+        );
+
+        const [rows] = await db.execute(
+            `
+            SELECT
+                e.employee_id,
+                e.full_name,
+                e.gender,
+                e.phone,
+                e.address,
+                e.salary_rate,
+                e.created_at,
+                p.position_name
+            FROM employee e
+            JOIN positions p ON e.position_id = p.position_id
+            WHERE e.employee_id = ?
+            `,
+            [employeeId]
+        );
+
+        return res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        const accountId = req.user.account_id;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Thiếu dữ liệu bắt buộc' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+        }
+
+        const [accounts] = await db.execute(
+            `SELECT password FROM account WHERE account_id = ?`,
+            [accountId]
+        );
+
+        if (accounts.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, accounts[0].password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.execute(
+            `UPDATE account SET password = ? WHERE account_id = ?`,
+            [hashedPassword, accountId]
+        );
+
+        return res.status(200).json({ message: 'Đổi mật khẩu thành công' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Lỗi server' });
     }
 };
