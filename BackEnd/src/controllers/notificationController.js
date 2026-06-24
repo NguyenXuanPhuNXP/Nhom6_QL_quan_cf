@@ -1,5 +1,5 @@
 const db = require('../config/db');
-
+//cone code for notification controller
 exports.getMyNotifications = async (req, res) => {
     try {
         const employeeId = req.user.employee_id;
