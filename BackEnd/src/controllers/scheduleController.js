@@ -157,7 +157,7 @@ exports.getByWeek = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
-// POST create schedule
+// POST create schedule (API phân ca)
 exports.create = async (req, res) => {
     try {
         const { employee_id, shift_id, work_date } = req.body;
@@ -173,6 +173,7 @@ exports.create = async (req, res) => {
             return res.status(400).json({ message: 'Nhân viên đã được phân ca này trong ngày' });
         }
         const [result] = await db.execute(
+            //Create Schedule
             `INSERT INTO schedule (employee_id, shift_id, work_date, status) 
              VALUES (?, ?, ?, 'Da_phan_cong')`,
             [employee_id, shift_id, work_date]
