@@ -11,13 +11,11 @@ const ensureDefaultShifts = async () => {
         'SELECT shift_id FROM shift WHERE shift_name = ? LIMIT 1',
         ['Ca trưa']
     );
-
     if (existingLunchShift.length === 0) {
         const [oldNightShift] = await db.execute(
             'SELECT shift_id FROM shift WHERE shift_name = ? LIMIT 1',
             ['Ca tối']
         );
-
         if (oldNightShift.length > 0) {
             await db.execute(
                 `UPDATE shift
@@ -27,13 +25,11 @@ const ensureDefaultShifts = async () => {
             );
         }
     }
-
     for (const shift of DEFAULT_SHIFTS) {
         const [existingByName] = await db.execute(
             'SELECT shift_id FROM shift WHERE shift_name = ? LIMIT 1',
             [shift.shift_name]
         );
-
         if (existingByName.length > 0) {
             await db.execute(
                 `UPDATE shift
@@ -48,12 +44,10 @@ const ensureDefaultShifts = async () => {
             );
             continue;
         }
-
         const [existingByTime] = await db.execute(
             'SELECT shift_id FROM shift WHERE start_time = ? AND end_time = ? LIMIT 1',
             [shift.start_time, shift.end_time]
         );
-
         if (existingByTime.length > 0) {
             await db.execute(
                 `UPDATE shift
@@ -63,7 +57,6 @@ const ensureDefaultShifts = async () => {
             );
             continue;
         }
-
         await db.execute(
             `INSERT INTO shift (shift_name, start_time, end_time, salary_multiplier)
              VALUES (?, ?, ?, ?)`,
@@ -71,7 +64,6 @@ const ensureDefaultShifts = async () => {
         );
     }
 };
-
 // GET all schedules (with employee + shift info)
 exports.getAll = async (req, res) => {
     try {
@@ -111,14 +103,12 @@ exports.getAll = async (req, res) => {
                 salary_multiplier: row.salary_multiplier
             }
         }));
-
         return res.status(200).json(formatted);
     } catch (error) {
         console.error('getAll schedules error:', error);
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
-
 // GET schedules by date range
 exports.getByWeek = async (req, res) => {
     try {
@@ -126,7 +116,6 @@ exports.getByWeek = async (req, res) => {
         if (!start || !end) {
             return res.status(400).json({ message: 'Cần truyền start và end date' });
         }
-
         const [rows] = await db.execute(`
             SELECT 
                 s.schedule_id,
@@ -145,7 +134,6 @@ exports.getByWeek = async (req, res) => {
             WHERE s.work_date BETWEEN ? AND ?
             ORDER BY s.work_date, e.full_name
         `, [start, end]);
-
         const formatted = rows.map(row => ({
             schedule_id: row.schedule_id,
             employee_id: row.employee_id,
@@ -163,23 +151,19 @@ exports.getByWeek = async (req, res) => {
                 salary_multiplier: row.salary_multiplier
             }
         }));
-
         return res.status(200).json(formatted);
     } catch (error) {
         console.error('getByWeek schedules error:', error);
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
-
 // POST create schedule
 exports.create = async (req, res) => {
     try {
         const { employee_id, shift_id, work_date } = req.body;
-
         if (!employee_id || !shift_id || !work_date) {
             return res.status(400).json({ message: 'Thiếu dữ liệu bắt buộc' });
         }
-
         // Check duplicate
         const [existing] = await db.execute(
             'SELECT schedule_id FROM schedule WHERE employee_id = ? AND shift_id = ? AND work_date = ?',
@@ -188,13 +172,11 @@ exports.create = async (req, res) => {
         if (existing.length > 0) {
             return res.status(400).json({ message: 'Nhân viên đã được phân ca này trong ngày' });
         }
-
         const [result] = await db.execute(
             `INSERT INTO schedule (employee_id, shift_id, work_date, status) 
              VALUES (?, ?, ?, 'Da_phan_cong')`,
             [employee_id, shift_id, work_date]
         );
-
         return res.status(201).json({ 
             message: 'Thêm lịch thành công',
             schedule_id: result.insertId 
@@ -210,7 +192,6 @@ exports.update = async (req, res) => {
     try {
         const id = req.params.id;
         const { employee_id, shift_id, work_date, status } = req.body;
-
         const [exists] = await db.execute(
             'SELECT schedule_id FROM schedule WHERE schedule_id = ?', [id]
         );
@@ -225,17 +206,14 @@ exports.update = async (req, res) => {
         if (shift_id) { updates.push('shift_id = ?'); params.push(shift_id); }
         if (work_date) { updates.push('work_date = ?'); params.push(work_date); }
         if (status) { updates.push('status = ?'); params.push(status); }
-
         if (updates.length === 0) {
             return res.status(400).json({ message: 'Không có dữ liệu cần cập nhật' });
         }
-
         params.push(id);
         await db.execute(
             `UPDATE schedule SET ${updates.join(', ')} WHERE schedule_id = ?`,
             params
         );
-
         return res.status(200).json({ message: 'Cập nhật lịch thành công' });
     } catch (error) {
         console.error('update schedule error:', error);
@@ -253,7 +231,6 @@ exports.remove = async (req, res) => {
         if (exists.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy lịch làm việc' });
         }
-
         await db.execute('DELETE FROM schedule WHERE schedule_id = ?', [id]);
         return res.status(200).json({ message: 'Xóa lịch thành công' });
     } catch (error) {
@@ -261,7 +238,6 @@ exports.remove = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
-
 // GET all shifts
 exports.getAllShifts = async (req, res) => {
     try {
@@ -280,7 +256,6 @@ exports.getAllShifts = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
-
 // GET all employees (for dropdown)
 exports.getEmployees = async (req, res) => {
     try {
@@ -415,8 +390,7 @@ exports.getByEmployee = async (req, res) => {
     try {
         const { employeeId } = req.params;
         const [schedules] = await db.execute(
-            `
-            SELECT
+            `SELECT
                 s.schedule_id,
                 s.work_date,
                 s.status,
@@ -431,8 +405,7 @@ exports.getByEmployee = async (req, res) => {
             WHERE s.employee_id = ?
             ORDER BY
                 s.work_date ASC,
-                sh.start_time ASC
-            `,
+                sh.start_time ASC`,
             [employeeId]
         );
         return res.status(200).json({
