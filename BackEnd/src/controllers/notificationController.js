@@ -1,5 +1,15 @@
 const db = require('../config/db');
-
+//save notification
+exports.saveNotification = async (employeeId, title, content) => {
+    try {
+        await db.execute(
+            `INSERT INTO notification (employee_id, title, content) VALUES (?, ?, ?)`,
+            [employeeId, title, content]
+        );
+    } catch (error) {
+        console.error('saveNotification error:', error);
+    }
+};
 exports.getMyNotifications = async (req, res) => {
     try {
         const employeeId = req.user.employee_id;
