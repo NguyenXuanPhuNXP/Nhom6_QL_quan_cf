@@ -438,3 +438,45 @@ exports.getByEmployee = async (req, res) => {
         });
     }
 };
+// GET check minimum staff requirement for a shift on a specific date
+exports.checkMinStaff = async (req, res) => {
+    try {
+        const { work_date, shift_id } = query || req.query; 
+        if (!work_date || !shift_id) {
+            return res.status(400).json({ message: 'Thiếu work_date hoặc shift_id' });
+        }
+
+        // 1. Định nghĩa số nhân viên tối thiểu (Mặc định là 2 người/ca, hoặc bạn có thể tạo bảng cấu hình riêng như shift_requirements)
+        const MINIMUM_STAFF = 2; 
+
+        // 2. Đếm số nhân viên thực tế đã được xếp vào ca này trong ngày (không tính ca đã Hủy)
+        const [rows] = await db.execute(`
+            SELECT COUNT(schedule_id) AS actual_count 
+            FROM schedule 
+            WHERE work_date = ? AND shift_id = ? AND status != 'Huy'
+        `, [work_date, shift_id]);
+
+        const actualCount = rows[0].actual_count;
+
+        // 3. Trả về kết quả đối chiếu cho Frontend hiển thị icon cảnh báo
+        if (actualCount < MINIMUM_STAFF) {
+            return res.status(200).json({
+                is_valid: false,
+                actual_count: actualCount,
+                minimum_required: MINIMUM_STAFF,
+                message: `Cảnh báo: Ca làm việc ngày ${work_date} hiện mới có ${actualCount}/${MINIMUM_STAFF} nhân viên (Thiếu nhân sự tối thiểu).`
+            });
+        }
+
+        return res.status(200).json({
+            is_valid: true,
+            actual_count: actualCount,
+            minimum_required: MINIMUM_STAFF,
+            message: 'Ca làm việc đã đạt đủ số lượng nhân sự tối thiểu.'
+        });
+
+    } catch (error) {
+        console.error('checkMinStaff error:', error);
+        return res.status(500).json({ message: 'Lỗi server: ' + error.message });
+    }
+};
