@@ -125,7 +125,7 @@ export const DashboardPage = () => {
         {/* Today Schedule */}
         <Card>
           <CardHeader>
-            <CardTitle>Lịch làm việc hôm nay</CardTitle>
+            <CardTitle>Lịch làm việc</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-auto max-h-[300px]">
