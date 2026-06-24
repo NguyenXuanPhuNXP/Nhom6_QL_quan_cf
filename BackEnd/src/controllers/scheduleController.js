@@ -435,3 +435,96 @@ exports.getByEmployee = async (req, res) => {
         });
     }
 };
+// POST validate employee check-in
+exports.validateCheckIn = async (req, res) => {
+    try {
+        const { employee_id, check_in_time } = req.body;
+
+        if (!employee_id) {
+            return res.status(400).json({ message: 'Thiếu employee_id' });
+        }
+
+        // 1. Lấy ngày hiện tại và giờ hiện tại (Format: YYYY-MM-DD và HH:MM:SS)
+        const now = new Date();
+        const currentDate = now.toISOString().split('T')[0]; // Ví dụ: "2026-06-24"
+        
+        // Nếu client không truyền check_in_time, lấy giờ hiện tại của server
+        const actualCheckInTime = check_in_time || now.toTimeString().split(' ')[0]; // Ví dụ: "08:30:00"
+
+        // 2. Lấy tất cả các ca làm việc được phân trong ngày hôm nay của nhân viên
+        const [assignedSchedules] = await db.execute(`
+            SELECT 
+                s.schedule_id,
+                sh.shift_id,
+                sh.shift_name,
+                sh.start_time,
+                sh.end_time
+            FROM schedule s
+            INNER JOIN shift sh ON s.shift_id = sh.shift_id
+            WHERE s.employee_id = ? 
+              AND s.work_date = ? 
+              AND s.status != 'Huy'
+        `, [employee_id, currentDate]);
+
+        if (assignedSchedules.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Check-in thất bại: Bạn không có lịch làm việc nào được xếp trong ngày hôm nay (${currentDate}).`
+            });
+        }
+
+        // 3. Định nghĩa biên độ sai lệch thời gian cho phép check-in (Đơn vị: phút)
+        const ALLOW_EARLY_MINUTES = 30; // Cho phép đến sớm 30 phút
+        const ALLOW_LATE_MINUTES = 120;  // Cho phép đến muộn tối đa 2 tiếng (sau 2 tiếng coi như bỏ ca hoặc cần đi muộn có phép)
+
+        let matchedSchedule = null;
+
+        // Hàm phụ trợ đổi "HH:MM:SS" thành số phút trong ngày để dễ so sánh
+        const timeToMinutes = (timeStr) => {
+            const [h, m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        };
+
+        const currentMinutes = timeToMinutes(actualCheckInTime);
+
+        // 4. Vòng lặp đối chiếu giờ check-in thực tế với các ca trong ngày
+        for (const sched of assignedSchedules) {
+            const startMinutes = timeToMinutes(sched.start_time);
+            const endMinutes = timeToMinutes(sched.end_time);
+
+            // Khung thời gian hợp lệ: [Giờ bắt đầu - 30p] cho đến [Giờ kết thúc]
+            // (Hoặc bạn có thể siết lại là [Giờ bắt đầu + 120p] tùy quy định công ty)
+            const validCheckInStart = startMinutes - ALLOW_EARLY_MINUTES;
+            const validCheckInEnd = startMinutes + ALLOW_LATE_MINUTES;
+
+            if (currentMinutes >= validCheckInStart && currentMinutes <= validCheckInEnd) {
+                matchedSchedule = sched;
+                break; // Tìm thấy ca phù hợp thì dừng lại luôn
+            }
+        }
+
+        // 5. Trả về kết quả validate
+        if (!matchedSchedule) {
+            return res.status(400).json({
+                success: false,
+                message: `Check-in thất bại: Thời gian check-in (${actualCheckInTime}) không trùng khớp với khung giờ cho phép của bất kỳ ca làm việc nào trong ngày.`
+            });
+        }
+
+        // Nếu hợp lệ, trả về thông tin ca làm việc để hệ thống ghi nhận vào bảng chấm công (attendance)
+        return res.status(200).json({
+            success: true,
+            message: `Check-in thành công vào [${matchedSchedule.shift_name}]`,
+            data: {
+                schedule_id: matchedSchedule.schedule_id,
+                shift_id: matchedSchedule.shift_id,
+                shift_name: matchedSchedule.shift_name,
+                check_in_time: actualCheckInTime
+            }
+        });
+
+    } catch (error) {
+        console.error('validateCheckIn error:', error);
+        return res.status(500).json({ message: 'Lỗi server: ' + error.message });
+    }
+};
