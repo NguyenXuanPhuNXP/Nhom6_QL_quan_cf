@@ -155,7 +155,7 @@ exports.getByWeek = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server: ' + error.message });
     }
 };
-// POST create schedule (API phân ca)
+// POST create schedule ((API phân ca))
 exports.create = async (req, res) => {
     try {
         const { employee_id, shift_id, work_date } = req.body;
