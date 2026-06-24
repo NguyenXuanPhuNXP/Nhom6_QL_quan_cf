@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '../hooks/useAuth';
-
+//notificationsPage.jsx
 export const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
