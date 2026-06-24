@@ -3,7 +3,7 @@ const { notifyManagers, createNotification } = require('../services/notification
 const { isManagerRole } = require('../utils/roles');
 
 const formatLeaveRequest = (row) => ({
-    leave_id: row.leave_id,
+    leave_id: row.leave_request_id,
     employee_id: row.employee_id,
     start_date: row.start_date instanceof Date
         ? row.start_date.toISOString().split('T')[0]
@@ -40,7 +40,7 @@ exports.getAll = async (req, res) => {
                 p.position_name
             FROM leave_request lr
             INNER JOIN employee e ON lr.employee_id = e.employee_id
-            LEFT JOIN positions p ON e.position_id = p.position_id
+            LEFT JOIN \`position\` p ON e.position_id = p.position_id
         `;
         const params = [];
 
@@ -113,7 +113,7 @@ const updateLeaveStatus = async (req, res, status) => {
             `SELECT lr.*, e.full_name
              FROM leave_request lr
              INNER JOIN employee e ON lr.employee_id = e.employee_id
-             WHERE lr.leave_id = ?`,
+             WHERE lr.leave_request_id = ?`,
             [id]
         );
 
@@ -130,7 +130,7 @@ const updateLeaveStatus = async (req, res, status) => {
         await db.execute(
             `UPDATE leave_request
              SET status = ?, approved_by = ?, approved_at = NOW()
-             WHERE leave_id = ?`,
+             WHERE leave_request_id = ?`,
             [status, approverId, id]
         );
 
