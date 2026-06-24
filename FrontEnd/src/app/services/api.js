@@ -278,21 +278,82 @@ export const attendanceAPI = {
 // Payroll API
 export const payrollAPI = {
   getAll: async () => {
-    await delay(600);
-    return mockPayroll.map((pay) => ({
+    const res = await fetch(`${API_URL}/api/payroll`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải dữ liệu lương');
+    }
+    const rows = await res.json();
+    return rows.map((pay) => ({
       ...pay,
-      employee: getEmployeeById(pay.employee_id),
+      employee: pay.employee || { employee_id: pay.employee_id, full_name: 'N/A' },
     }));
   },
 
   getByMonth: async (month, year) => {
-    await delay(500);
-    return mockPayroll
-      .filter((p) => p.month === month && p.year === year)
-      .map((pay) => ({
-        ...pay,
-        employee: getEmployeeById(pay.employee_id),
-      }));
+    const res = await fetch(`${API_URL}/api/payroll/month?month=${month}&year=${year}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải dữ liệu lương');
+    }
+    const rows = await res.json();
+    return rows.map((pay) => ({
+      ...pay,
+      employee: pay.employee || { employee_id: pay.employee_id, full_name: 'N/A' },
+    }));
+  },
+
+  getByEmployee: async (employeeId) => {
+    const res = await fetch(`${API_URL}/api/payroll/employee/${employeeId}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải dữ liệu lương');
+    }
+    return res.json();
+  },
+
+  create: async (payroll) => {
+    const res = await fetch(`${API_URL}/api/payroll`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payroll),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tạo bảng lương');
+    }
+    return res.json();
+  },
+
+  update: async (id, payroll) => {
+    const res = await fetch(`${API_URL}/api/payroll/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payroll),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi cập nhật bảng lương');
+    }
+    return res.json();
+  },
+
+  delete: async (id) => {
+    const res = await fetch(`${API_URL}/api/payroll/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi xóa bảng lương');
+    }
+    return res.json();
   },
 };
 

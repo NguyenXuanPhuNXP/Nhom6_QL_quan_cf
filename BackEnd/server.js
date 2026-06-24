@@ -9,6 +9,7 @@ const scheduleRoutes = require('./src/routes/scheduleRoutes');
 const notificationRoutes = require('./src/routes/notificationRoutes');
 const leaveRequestRoutes = require('./src/routes/leaveRequestRoutes');
 const attendanceRoutes = require('./src/routes/attendanceRoutes');
+const payrollRoutes = require('./src/routes/payrollRoutes');
 const { initSocket } = require('./src/socket');
 
 const app = express();
@@ -30,6 +31,7 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/leave-requests', leaveRequestRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/payroll', payrollRoutes);
 
 httpServer.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
