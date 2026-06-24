@@ -306,6 +306,10 @@ exports.createShift = async (req, res) => {
             return res.status(400).json({ message: 'Thiếu thông tin bắt buộc' });
         }
 
+        if (start_time >= end_time) {
+            return res.status(400).json({ message: 'Giờ bắt đầu phải nhỏ hơn giờ kết thúc' });
+        }
+
         // Check duplicate name
         const [existing] = await db.execute(
             'SELECT shift_id FROM shift WHERE shift_name = ?',
@@ -360,6 +364,9 @@ exports.updateShift = async (req, res) => {
         const params = [];
 
         if (shift_name) { updates.push('shift_name = ?'); params.push(shift_name); }
+        if (start_time && end_time && start_time >= end_time) {
+            return res.status(400).json({ message: 'Giờ bắt đầu phải nhỏ hơn giờ kết thúc' });
+        }
         if (start_time) { updates.push('start_time = ?'); params.push(start_time); }
         if (end_time) { updates.push('end_time = ?'); params.push(end_time); }
         if (salary_multiplier !== undefined) { updates.push('salary_multiplier = ?'); params.push(salary_multiplier); }

@@ -236,6 +236,10 @@ const handleDelete = async () => {
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
+    if (shiftFormData.start_time >= shiftFormData.end_time) {
+      toast.error('Giờ bắt đầu phải nhỏ hơn giờ kết thúc');
+      return;
+    }
 
     try {
       const payload = {
