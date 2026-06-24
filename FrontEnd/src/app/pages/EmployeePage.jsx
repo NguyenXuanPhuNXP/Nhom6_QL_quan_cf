@@ -26,14 +26,12 @@ import { Label } from '../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { employeeAPI } from '../services/api';
 import { toast } from 'sonner';
+import { useAuth } from '../hooks/useAuth';
 
-const GENDER_LABELS = {
-  Nam: 'Nam',
-  Nu: 'Nữ',
-  Khac: 'Khác',
-};
-
+//employee management page
 export const EmployeePage = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [employees, setEmployees] = useState([]);
   const [positions, setPositions] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
@@ -182,13 +180,15 @@ export const EmployeePage = () => {
           <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Quản lý nhân viên</h1>
           <p className="text-slate-600 mt-1">Danh sách và thông tin nhân viên</p>
         </div>
-        <Button
-          onClick={() => handleOpenDialog()}
-          className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Thêm nhân viên
-        </Button>
+        {isAdmin && (
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="w-full bg-[#3b82f6] hover:bg-[#2563eb] sm:w-auto"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Thêm nhân viên
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -222,7 +222,7 @@ export const EmployeePage = () => {
                   <TableHead>Địa chỉ</TableHead>
                   <TableHead>Vị trí</TableHead>
                   <TableHead>Lương/giờ</TableHead>
-                  <TableHead className="text-right">Thao tác</TableHead>
+                  {isAdmin && <TableHead className="text-right">Thao tác</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -168,6 +168,10 @@ exports.register = async (req, res) => {
         if (!username || !password || !confirmPassword || !full_name) {
             return res.status(400).json({
                 message: 'Vui lòng điền đầy đủ các trường bắt buộc'
+        // Validation
+        if (!username || !password || !full_name) {
+            return res.status(400).json({
+                message: 'Username, password, và full_name là bắt buộc'
             });
         }
 
@@ -192,6 +196,7 @@ exports.register = async (req, res) => {
         if (existUsername.length > 0) {
             return res.status(400).json({
                 message: 'Tên đăng nhập đã tồn tại'
+                message: 'Username đã tồn tại'
             });
         }
 
@@ -256,6 +261,8 @@ exports.register = async (req, res) => {
         const [accountResult] = await db.execute(
             `INSERT INTO account (username, password, role_id, employee_id, status)
              VALUES (?, ?, ?, ?, 'Active')`,
+            `INSERT INTO account (username, password, role_id, employee_id)
+             VALUES (?, ?, ?, ?)`,
             [username, hashedPassword, roleId, employeeId]
         );
 
@@ -292,6 +299,9 @@ exports.register = async (req, res) => {
         return res.status(500).json({
             message: 'Lỗi server: ' + error.message,
             stack: error.stack
+        console.error("Register Error:", error);
+        return res.status(500).json({
+            message: 'Lỗi server: ' + error.message
         });
     }
 };
