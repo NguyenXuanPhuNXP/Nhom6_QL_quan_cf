@@ -89,8 +89,8 @@ export const LoginPage = () => {
           employee,
         }, data.token);
         
-        toast.success(isRegistering ? 'Đăng ký thành công!' : 'Đăng nhập thành công!');
-        navigate('/dashboard');
+toast.success(isRegistering ? 'Đăng ký thành công!' : 'Đăng nhập thành công!');
+        navigate('/my-schedule');
       } else {
         toast.error(data.message || 'Có lỗi xảy ra');
       }
