@@ -25,23 +25,23 @@ export const LoginPage = () => {
     e.preventDefault();
     
     if (isRegistering) {
-        if (!username || !password || !confirmPassword || !fullName) {
-            toast.error('Vui lòng nhập đầy đủ thông tin bắt buộc');
-            return;
-        }
-        if (password !== confirmPassword) {
-            toast.error('Mật khẩu xác nhận không khớp');
-            return;
-        }
-        if (password.length < 6) {
-            toast.error('Mật khẩu phải có ít nhất 6 ký tự');
-            return;
-        }
+      if (!username || !password || !confirmPassword || !fullName) {
+        toast.error('Vui lòng nhập đầy đủ thông tin bắt buộc');
+        return;
+      }
+      if (password !== confirmPassword) {
+        toast.error('Mật khẩu xác nhận không khớp');
+        return;
+      }
+      if (password.length < 6) {
+        toast.error('Mật khẩu phải có ít nhất 6 ký tự');
+        return;
+      }
     } else {
-        if (!username || !password) {
-            toast.error('Vui lòng nhập đầy đủ thông tin');
-            return;
-        }
+      if (!username || !password) {
+        toast.error('Vui lòng nhập đầy đủ thông tin');
+        return;
+      }
     }
 
     setIsLoading(true);
@@ -124,20 +124,19 @@ export const LoginPage = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
-            
             {isRegistering && (
-                <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="fullname">Họ và tên *</Label>
                 <Input
-                    id="fullname"
-                    type="text"
-                    placeholder="Nguyễn Văn A"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    disabled={isLoading}
-                    className="h-11"
+                  id="fullname"
+                  type="text"
+                  placeholder="Nguyễn Văn A"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={isLoading}
+                  className="h-11"
                 />
-                </div>
+              </div>
             )}
 
             <div className="space-y-2">
@@ -167,35 +166,35 @@ export const LoginPage = () => {
             </div>
 
             {isRegistering && (
-                <div className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Xác nhận mật khẩu *</Label>
                 <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="Nhập lại mật khẩu"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="h-11"
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading}
+                  className="h-11"
                 />
-                </div>
+              </div>
             )}
 
             {!isRegistering && (
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
                 <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={(checked) => setRememberMe(checked)}
-                    disabled={isLoading}
+                  id="remember"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) => setRememberMe(checked)}
+                  disabled={isLoading}
                 />
                 <label
-                    htmlFor="remember"
-                    className="text-sm font-normal text-slate-600 cursor-pointer"
+                  htmlFor="remember"
+                  className="text-sm font-normal text-slate-600 cursor-pointer"
                 >
-                    Ghi nhớ đăng nhập
+                  Ghi nhớ đăng nhập
                 </label>
-                </div>
+              </div>
             )}
 
             <Button
@@ -217,27 +216,17 @@ export const LoginPage = () => {
           <div className="mt-6 text-center text-sm text-slate-600">
             {isRegistering ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'}
             <button 
-                className="ml-1 text-[#3b82f6] hover:underline font-semibold"
-                onClick={() => {
-                    setIsRegistering(!isRegistering);
-                    setUsername('');
-                    setPassword('');
-                    setConfirmPassword('');
-                    setFullName('');
-                }}
+              className="ml-1 text-[#3b82f6] hover:underline font-semibold"
+              onClick={() => {
+                setIsRegistering(!isRegistering);
+                setUsername('');
+                setPassword('');
+                setConfirmPassword('');
+                setFullName('');
+              }}
             >
-                {isRegistering ? 'Đăng nhập ngay' : 'Đăng ký ngay'}
+              {isRegistering ? 'Đăng nhập ngay' : 'Đăng ký ngay'}
             </button>
-          <div className="mt-6 pt-4 border-t text-center">
-            <p className="text-sm text-slate-600 mb-3">Chưa có tài khoản?</p>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => navigate('/register')}
-            >
-              Tạo tài khoản mới
-            </Button>
           </div>
         </CardContent>
       </Card>

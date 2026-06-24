@@ -23,7 +23,7 @@ export const AttendancePage = () => {
   const { user } = useAuth();
   const [attendances, setAttendances] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [selectedDate, setSelectedDate] = useState(''); // Empty means show all
 
   useEffect(() => {
     fetchAttendances();
@@ -61,7 +61,7 @@ export const AttendancePage = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+const getStatusColor = (status) => {
     const colors = {
       'Đúng giờ': 'bg-green-100 text-green-800',
       'Đi trễ': 'bg-orange-100 text-orange-800',
@@ -80,10 +80,29 @@ export const AttendancePage = () => {
       .slice(0, 2);
   };
 
+// Filter attendances by selected date - THIS MUST BE INSIDE THE COMPONENT
   const filteredAttendances = attendances.filter((att) => {
-    const workDate = att.work_date || format(new Date(att.check_in), 'yyyy-MM-dd');
-    return workDate === selectedDate;
+    // If no date selected, show all
+    if (!selectedDate) return true;
+    
+    // Handle work_date properly - ensure it's in yyyy-MM-dd format
+    let workDate = att.work_date;
+    if (!workDate && att.check_in) {
+      // Try to extract date from check_in if work_date is missing
+      const checkInDate = new Date(att.check_in);
+      if (!isNaN(checkInDate.getTime())) {
+        workDate = format(checkInDate, 'yyyy-MM-dd');
+      }
+    }
+    // Compare dates - normalize both to ensure string comparison works
+    const normalizedWorkDate = workDate ? String(workDate).split('T')[0] : null;
+    return normalizedWorkDate === selectedDate;
   });
+
+  // Table title based on filter
+  const tableTitle = selectedDate 
+    ? `Bảng chấm công ngày ${format(new Date(selectedDate), 'dd/MM/yyyy', { locale: vi })}`
+    : 'Bảng chấm công (Tất cả)';
 
   const openSession = attendances.find(
     (att) =>
@@ -188,8 +207,8 @@ export const AttendancePage = () => {
       {/* Attendance Table */}
       <Card>
         <CardHeader>
-          <CardTitle>
-            Bảng chấm công ngày {format(new Date(selectedDate), 'dd/MM/yyyy', { locale: vi })}
+<CardTitle>
+            {tableTitle}
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -58,48 +58,36 @@ export const authAPI = {
   },
 };
 
-// Dashboard API
+// Dashboard API - Using real backend
 export const dashboardAPI = {
   getStats: async () => {
-    await delay(500);
-    const today = new Date().toISOString().split('T')[0];
-    const todaySchedules = mockSchedules.filter((s) => s.work_date === today);
-    const workingNow = mockAttendance.filter(
-      (a) => a.work_date === today && !a.check_out
-    );
-    const pendingLeaves = mockLeaveRequests.filter((l) => l.status === 'Chờ duyệt');
-
-    return {
-      totalEmployees: mockEmployees.length,
-      totalShiftsToday: todaySchedules.length,
-      employeesWorking: workingNow.length,
-      pendingLeaveRequests: pendingLeaves.length,
-    };
+    const res = await fetch(`${API_URL}/api/dashboard/stats`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error('Lỗi khi tải thống kê');
+    }
+    return res.json();
   },
 
   getAttendanceChart: async () => {
-    await delay(500);
-    // Mock chart data for last 7 days
-    return [
-      { date: '17/05', present: 12, late: 2, absent: 1 },
-      { date: '18/05', present: 14, late: 1, absent: 0 },
-      { date: '19/05', present: 13, late: 3, absent: 1 },
-      { date: '20/05', present: 15, late: 0, absent: 0 },
-      { date: '21/05', present: 12, late: 2, absent: 2 },
-      { date: '22/05', present: 14, late: 1, absent: 1 },
-      { date: '23/05', present: 13, late: 2, absent: 0 },
-    ];
+    const res = await fetch(`${API_URL}/api/dashboard/attendance-chart`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error('Lỗi khi tải biểu đồ');
+    }
+    return res.json();
   },
 
   getTodaySchedule: async () => {
-    await delay(500);
-    const today = '2026-05-23';
-    const todaySchedules = mockSchedules.filter((s) => s.work_date === today);
-    return todaySchedules.map((schedule) => ({
-      ...schedule,
-      employee: getEmployeeById(schedule.employee_id),
-      shift: getShiftById(schedule.shift_id),
-    }));
+    const res = await fetch(`${API_URL}/api/dashboard/today-schedule`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      throw new Error('Lỗi khi tải lịch hôm nay');
+    }
+    return res.json();
   },
 };
 

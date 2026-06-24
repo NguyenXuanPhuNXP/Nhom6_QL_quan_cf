@@ -1,16 +1,32 @@
-# TODO: Quản lý phân ca - Thêm tính năng thêm/sửa/xóa ca làm việc
+# TODO - Server Bug Fixes - COMPLETED
 
-## Status: ✅ ĐÃ HOÀN THÀNH
+## Bugs Fixed:
 
-### Đã thực hiện:
-1. **Backend - scheduleController.js**: ✅
-   - Thêm functions: createShift, updateShift, deleteShift
+### Backend (✅ Fixed)
+- [x] authController.js - register: duplicate validation, missing brace, SQL
+- [x] authRoutes.js - duplicate routes
+- [x] db.js - duplicate entries
+- [x] package.json - duplicates, missing dependencies
 
-2. **Backend - scheduleRoutes.js**: ✅
-   - Thêm routes CRUD cho /api/shifts
+### Frontend (✅ Fixed)
+- [x] LoginPage.jsx - duplicate code block
+- [x] EmployeePage.jsx - missing GENDER_LABELS
 
-3. **Frontend - SchedulePage.jsx**: ✅
-   - Thêm nút "Thêm ca" trong phần Chú thích ca làm
-   - Thêm form tạo/sửa ca (tên ca, giờ bắt đầu, giờ kết thúc, hệ số lương)
-   - Thêm chức năng xóa ca (chỉ xóa được ca chưa được phân công)
-   - Hiển thị 3 ca mặc định: Ca sáng (6-11h), Ca trưa (11-16h), Ca chiều (16-22h)
+### New Features Added (✅ Fixed)
+- [x] dashboardController.js - NEW: Backend dashboard API (stats, chart, today schedule)
+- [x] dashboardRoutes.js - NEW: Dashboard routes
+- [x] api.js - Changed dashboardAPI to use real backend
+
+## Files Created:
+- BackEnd/src/controllers/dashboardController.js
+- BackEnd/src/routes/dashboardRoutes.js
+
+## Files Modified:
+- BackEnd/server.js
+- BackEnd/src/controllers/authController.js
+- BackEnd/src/routes/authRoutes.js
+- FrontEnd/src/app/pages/EmployeePage.jsx
+- FrontEnd/src/app/pages/LoginPage.jsx
+- FrontEnd/src/app/services/api.js
+
+## Status: COMPLETED ✅

@@ -28,6 +28,12 @@ import { employeeAPI } from '../services/api';
 import { toast } from 'sonner';
 import { useAuth } from '../hooks/useAuth';
 
+const GENDER_LABELS = {
+  'Nam': 'Nam',
+  'Nu': 'Nữ',
+  'Khac': 'Khác',
+};
+
 //employee management page
 export const EmployeePage = () => {
   const { user } = useAuth();
