@@ -66,7 +66,7 @@ const ensureDefaultShifts = async () => {
         );
     }
 };
-// GET all schedules (with employee + shift info)
+// GET all schedules (with employee + shift info))
 exports.getAll = async (req, res) => {
     try {
         const [rows] = await db.execute(`
