@@ -10,9 +10,10 @@ router.post('/register', authController.register);
 
 // Employee endpoints (mapped to functions in authController as per Develop branch structure)
 router.get('/employees', auth, authController.getAllEmployees);
+router.get('/positions', auth, authController.getAllPositions);
 router.get('/employees/:id', auth, authController.getEmployeeById);
-router.post('/employees', auth, authorize('Admin'), authController.createEmployee);
-router.put('/employees/:id', auth, authorize('Admin'), authController.updateEmployee);
+router.post('/employees', auth, authorize('Admin', 'Quản lý'), authController.createEmployee);
+router.put('/employees/:id', auth, authorize('Admin', 'Quản lý'), authController.updateEmployee);
 router.delete('/employees/:id', auth, authorize('Admin'), authController.deleteEmployee);
 
 router.put('/profile', auth, authController.updateProfile);

@@ -73,7 +73,7 @@ export const AccountPage = () => {
       setFormData({
         username: account.username,
         password: '',
-        role_id: account.role_id,
+        role_id: String(account.role_id),
         employee_id: account.employee_id,
         status: account.status || 'Active',
       });
@@ -83,7 +83,7 @@ export const AccountPage = () => {
       setFormData({
         username: '',
         password: '',
-        role_id: roles.length > 0 ? roles[0].role_id : '',
+        role_id: roles.length > 0 ? String(roles[0].role_id) : '',
         employee_id: '',
         status: 'Active',
       });
@@ -104,8 +104,8 @@ export const AccountPage = () => {
       if (editingId) {
         // Chỉ gửi password nếu có thay đổi
         const updateData = {
-          role_id: formData.role_id,
-          status: formData.status
+          role_id: Number(formData.role_id),
+          status: formData.status,
         };
         if (formData.password) {
             updateData.password = formData.password;
@@ -113,7 +113,11 @@ export const AccountPage = () => {
         await accountAPI.update(editingId, updateData);
         toast.success('Cập nhật tài khoản thành công');
       } else {
-        await accountAPI.create(formData);
+        await accountAPI.create({
+          ...formData,
+          role_id: Number(formData.role_id),
+          employee_id: Number(formData.employee_id),
+        });
         toast.success('Thêm tài khoản thành công');
       }
       setIsDialogOpen(false);
@@ -216,15 +220,19 @@ export const AccountPage = () => {
                             <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
                               {account.position_name || 'Chưa phân công'}
                             </span>
+                            <p className="mt-1 text-[11px] text-slate-400">Vị trí công việc</p>
                           </td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
                               account.role_name === 'Admin'
                                 ? 'bg-purple-100 text-purple-800'
-                                : 'bg-blue-100 text-blue-800'
+                                : account.role_name === 'Quản lý'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
                             }`}>
                               {account.role_name}
                             </span>
+                            <p className="mt-1 text-[11px] text-slate-400">Quyền hệ thống</p>
                           </td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${

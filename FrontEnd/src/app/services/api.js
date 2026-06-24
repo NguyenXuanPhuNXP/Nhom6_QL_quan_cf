@@ -170,6 +170,17 @@ export const employeeAPI = {
     }
     return res.json();
   },
+
+  getPositions: async () => {
+    const res = await fetch(`${API_URL}/auth/positions`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải danh sách vị trí');
+    }
+    return res.json();
+  },
 };
 
 // Shift API
