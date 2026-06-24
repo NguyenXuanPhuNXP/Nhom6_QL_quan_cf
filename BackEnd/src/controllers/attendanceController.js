@@ -2,21 +2,34 @@ const db = require('../config/db');
 const { notifyManagers } = require('../services/notificationService');
 const { isManagerRole } = require('../utils/roles');
 
-const formatAttendance = (row) => ({
-    attendance_id: row.attendance_id,
-    employee_id: row.employee_id,
-    schedule_id: row.schedule_id,
-    check_in: row.check_in,
-    check_out: row.check_out,
-    total_hours: row.total_hours,
-    status: row.status,
-    work_date: row.check_in instanceof Date
-        ? row.check_in.toISOString().split('T')[0]
-        : String(row.check_in).split('T')[0],
-    employee: row.full_name
-        ? { employee_id: row.employee_id, full_name: row.full_name }
-        : undefined,
-});
+const formatAttendance = (row) => {
+    // Handle date conversion properly
+    let workDate = null;
+    if (row.check_in) {
+        if (row.check_in instanceof Date) {
+            workDate = row.check_in.toISOString().split('T')[0];
+        } else if (typeof row.check_in === 'string') {
+            // Handle MySQL datetime format: '2024-01-15 08:30:00'
+            workDate = row.check_in.split(' ')[0];
+        } else {
+            workDate = String(row.check_in).split('T')[0];
+        }
+    }
+
+    return {
+        attendance_id: row.attendance_id,
+        employee_id: row.employee_id,
+        schedule_id: row.schedule_id,
+        check_in: row.check_in,
+        check_out: row.check_out,
+        total_hours: row.total_hours,
+        status: row.status,
+        work_date: workDate,
+        employee: row.full_name
+            ? { employee_id: row.employee_id, full_name: row.full_name }
+            : undefined,
+    };
+};
 
 const STATUS_LABELS = {
     Dung_gio: 'Đúng giờ',
@@ -27,6 +40,8 @@ const STATUS_LABELS = {
 
 exports.getAll = async (req, res) => {
     try {
+        console.log('[Attendance Debug] getAll called, user:', req.user);
+        
         let query = `
             SELECT a.*, e.full_name
             FROM attendance a
@@ -34,17 +49,24 @@ exports.getAll = async (req, res) => {
         `;
         const params = [];
 
+        // Debug: Log the filtering condition
+        console.log('[Attendance Debug] role_name:', req.user.role_name, 'isManager:', isManagerRole(req.user.role_name));
+        
         if (!isManagerRole(req.user.role_name)) {
             query += ' WHERE a.employee_id = ?';
             params.push(req.user.employee_id);
+            console.log('[Attendance Debug] Filtering by employee_id:', req.user.employee_id);
         }
 
         query += ' ORDER BY a.check_in DESC';
 
         const [rows] = await db.execute(query, params);
+        console.log('[Attendance Debug] Rows returned:', rows.length);
+        
         const formatted = rows.map((row) => {
             const item = formatAttendance(row);
             item.statusLabel = STATUS_LABELS[item.status] || item.status;
+            console.log('[Attendance Debug] Formatted item work_date:', item.work_date, 'check_in:', item.check_in);
             return item;
         });
 
