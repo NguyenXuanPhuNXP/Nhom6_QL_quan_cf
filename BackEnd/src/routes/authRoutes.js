@@ -15,9 +15,6 @@ router.get('/employees/:id', auth, authController.getEmployeeById);
 router.post('/employees', auth, authorize('Admin', 'Quản lý'), authController.createEmployee);
 router.put('/employees/:id', auth, authorize('Admin', 'Quản lý'), authController.updateEmployee);
 router.delete('/employees/:id', auth, authorize('Admin'), authController.deleteEmployee);
-// Public endpoints
-router.post('/login', authController.login);
-router.post('/register', authController.register);
 
 // Admin endpoints
 router.post(
@@ -26,7 +23,6 @@ router.post(
     authorize('Admin'),
     authController.createAccount
 );
-
 
 router.put('/profile', auth, authController.updateProfile);
 router.put('/change-password', auth, authController.changePassword);

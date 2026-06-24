@@ -15,11 +15,11 @@ import {
 import { useAuth } from '../hooks/useAuth';
 
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['Admin', 'Quản lý', 'Staff'] },
-  { icon: Users, label: 'Nhân viên', path: '/employees', roles: ['Admin', 'Quản lý', 'Staff'] },
+  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard', roles: ['Admin', 'Quản lý'] },
+  { icon: Users, label: 'Nhân viên', path: '/employees', roles: ['Admin', 'Quản lý'] },
   { icon: Shield, label: 'Tài khoản', path: '/accounts', roles: ['Admin'] },
   { icon: Calendar, label: 'Phân ca', path: '/schedule', roles: ['Admin', 'Quản lý'] },
-  { icon: Calendar, label: 'Lịch của tôi', path: '/my-schedule', roles: ['Staff'] },
+  { icon: Calendar, label: 'Lịch của tôi', path: '/my-schedule', roles: ['Admin', 'Quản lý', 'Staff'] },
   { icon: ClipboardCheck, label: 'Chấm công', path: '/attendance', roles: ['Admin', 'Quản lý', 'Staff'] },
   { icon: DollarSign, label: 'Lương', path: '/payroll', roles: ['Admin', 'Quản lý'] },
   { icon: FileText, label: 'Nghỉ phép', path: '/leave-requests', roles: ['Admin', 'Quản lý', 'Staff'] },
