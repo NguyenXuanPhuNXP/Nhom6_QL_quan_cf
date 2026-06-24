@@ -17,8 +17,10 @@ import { attendanceAPI } from '../services/api';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
+import { useAuth } from '../hooks/useAuth';
 
 export const AttendancePage = () => {
+  const { user } = useAuth();
   const [attendances, setAttendances] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -39,13 +41,13 @@ export const AttendancePage = () => {
     }
   };
 
-  const handleCheckIn = async (employeeId) => {
+  const handleCheckIn = async () => {
     try {
-      await attendanceAPI.checkIn(employeeId);
+      await attendanceAPI.checkIn(user?.employee?.employee_id);
       toast.success('Check-in thành công');
       fetchAttendances();
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -55,15 +57,16 @@ export const AttendancePage = () => {
       toast.success('Check-out thành công');
       fetchAttendances();
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   };
 
   const getStatusColor = (status) => {
     const colors = {
       'Đúng giờ': 'bg-green-100 text-green-800',
-      'Trễ': 'bg-orange-100 text-orange-800',
-      'Nghỉ': 'bg-red-100 text-red-800',
+      'Đi trễ': 'bg-orange-100 text-orange-800',
+      'Về sớm': 'bg-orange-100 text-orange-800',
+      'Nghỉ làm': 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
@@ -77,8 +80,14 @@ export const AttendancePage = () => {
       .slice(0, 2);
   };
 
-  const filteredAttendances = attendances.filter(
-    (att) => att.work_date === selectedDate
+  const filteredAttendances = attendances.filter((att) => {
+    const workDate = att.work_date || format(new Date(att.check_in), 'yyyy-MM-dd');
+    return workDate === selectedDate;
+  });
+
+  const openSession = attendances.find(
+    (att) =>
+      att.employee_id === user?.employee?.employee_id && !att.check_out
   );
 
   if (isLoading) {
@@ -87,10 +96,27 @@ export const AttendancePage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Chấm công</h1>
-        <p className="text-slate-600 mt-1">Quản lý chấm công check-in/check-out</p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Chấm công</h1>
+          <p className="text-slate-600 mt-1">Quản lý chấm công check-in/check-out</p>
+        </div>
+        <div className="flex gap-2">
+          {!openSession ? (
+            <Button onClick={handleCheckIn} className="bg-green-600 hover:bg-green-700">
+              <LogIn className="w-4 h-4 mr-2" />
+              Check-in
+            </Button>
+          ) : (
+            <Button
+              onClick={() => handleCheckOut(openSession.attendance_id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Check-out
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}
@@ -117,7 +143,7 @@ export const AttendancePage = () => {
               <div>
                 <p className="text-sm text-slate-600">Đi trễ</p>
                 <h3 className="text-2xl font-bold text-orange-600">
-                  {attendances.filter((a) => a.status === 'Trễ').length}
+                  {attendances.filter((a) => a.status === 'Đi trễ' || a.status === 'Về sớm').length}
                 </h3>
               </div>
               <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
@@ -133,7 +159,7 @@ export const AttendancePage = () => {
               <div>
                 <p className="text-sm text-slate-600">Nghỉ</p>
                 <h3 className="text-2xl font-bold text-red-600">
-                  {attendances.filter((a) => a.status === 'Nghỉ').length}
+                  {attendances.filter((a) => a.status === 'Nghỉ làm').length}
                 </h3>
               </div>
               <div className="w-12 h-12 bg-red-50 rounded-lg flex items-center justify-center">
@@ -186,9 +212,11 @@ export const AttendancePage = () => {
                     const checkOutTime = attendance.check_out
                       ? new Date(attendance.check_out)
                       : null;
-                    const hoursWorked = checkOutTime
-                      ? ((checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)).toFixed(1)
-                      : '-';
+                    const hoursWorked = attendance.total_hours
+                      ? Number(attendance.total_hours).toFixed(1)
+                      : checkOutTime
+                        ? ((checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)).toFixed(1)
+                        : '-';
 
                     return (
                       <TableRow key={attendance.attendance_id}>

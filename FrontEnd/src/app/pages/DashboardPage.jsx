@@ -32,7 +32,7 @@ export const DashboardPage = () => {
           dashboardAPI.getStats(),
           dashboardAPI.getAttendanceChart(),
           dashboardAPI.getTodaySchedule(),
-          user ? notificationAPI.getAll(user.employee.employee_id) : Promise.resolve([]),
+          user ? notificationAPI.getAll() : Promise.resolve([]),
         ]);
         setStats(statsData);
         setChartData(chartDataRes);

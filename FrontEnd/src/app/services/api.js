@@ -18,6 +18,24 @@ import {
 // Simulate API delay
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const API_URL = 'http://localhost:3000';
+
+const getAuthHeaders = () => {
+  const stored = localStorage.getItem('user');
+  if (stored) {
+    try {
+      const user = JSON.parse(stored);
+      if (user.token) {
+        return {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`,
+        };
+      }
+    } catch (_) {}
+  }
+  return { 'Content-Type': 'application/json' };
+};
+
 // Auth API
 export const authAPI = {
   login: async (username, password) => {
@@ -88,42 +106,69 @@ export const dashboardAPI = {
 // Employee API
 export const employeeAPI = {
   getAll: async () => {
-    await delay(600);
-    return mockEmployees;
+    const res = await fetch(`${API_URL}/auth/employees`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải danh sách nhân viên');
+    }
+    const rows = await res.json();
+    return rows.map((e) => ({
+      ...e,
+      position: e.position_name || e.position,
+    }));
   },
 
   getById: async (id) => {
-    await delay(400);
-    return getEmployeeById(id);
+    const res = await fetch(`${API_URL}/auth/employees/${id}`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Không tìm thấy nhân viên');
+    }
+    const row = await res.json();
+    return { ...row, position: row.position_name || row.position };
   },
 
   create: async (employee) => {
-    await delay(800);
-    const newEmployee = {
-      ...employee,
-      employee_id: Math.max(...mockEmployees.map((e) => e.employee_id)) + 1,
-      created_at: new Date().toISOString(),
-    };
-    mockEmployees.push(newEmployee);
-    return newEmployee;
+    const res = await fetch(`${API_URL}/auth/employees`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(employee),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi thêm nhân viên');
+    }
+    return res.json();
   },
 
   update: async (id, employee) => {
-    await delay(800);
-    const index = mockEmployees.findIndex((e) => e.employee_id === id);
-    if (index !== -1) {
-      mockEmployees[index] = { ...mockEmployees[index], ...employee };
-      return mockEmployees[index];
+    const res = await fetch(`${API_URL}/auth/employees/${id}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(employee),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi cập nhật nhân viên');
     }
-    throw new Error('Employee not found');
+    const row = await res.json();
+    return { ...row, position: row.position_name || row.position };
   },
 
   delete: async (id) => {
-    await delay(600);
-    const index = mockEmployees.findIndex((e) => e.employee_id === id);
-    if (index !== -1) {
-      mockEmployees.splice(index, 1);
+    const res = await fetch(`${API_URL}/auth/employees/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi xóa nhân viên');
     }
+    return res.json();
   },
 };
 
@@ -179,35 +224,43 @@ export const scheduleAPI = {
 // Attendance API
 export const attendanceAPI = {
   getAll: async () => {
-    await delay(600);
-    return mockAttendance.map((att) => ({
+    const res = await fetch(`${API_URL}/api/attendance`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải dữ liệu chấm công');
+    }
+    const rows = await res.json();
+    return rows.map((att) => ({
       ...att,
-      employee: getEmployeeById(att.employee_id),
+      status: att.statusLabel || att.status,
     }));
   },
 
   checkIn: async (employeeId) => {
-    await delay(800);
-    const newAttendance = {
-      attendance_id: Math.max(...mockAttendance.map((a) => a.attendance_id)) + 1,
-      employee_id: employeeId,
-      check_in: new Date().toISOString(),
-      check_out: null,
-      status: 'Đúng giờ',
-      work_date: new Date().toISOString().split('T')[0],
-    };
-    mockAttendance.push(newAttendance);
-    return newAttendance;
+    const res = await fetch(`${API_URL}/api/attendance/check-in`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ employee_id: employeeId }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Check-in thất bại');
+    }
+    return res.json();
   },
 
   checkOut: async (attendanceId) => {
-    await delay(800);
-    const index = mockAttendance.findIndex((a) => a.attendance_id === attendanceId);
-    if (index !== -1) {
-      mockAttendance[index].check_out = new Date().toISOString();
-      return mockAttendance[index];
+    const res = await fetch(`${API_URL}/api/attendance/${attendanceId}/check-out`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Check-out thất bại');
     }
-    throw new Error('Attendance not found');
+    return res.json();
   },
 };
 
@@ -235,84 +288,134 @@ export const payrollAPI = {
 // Leave Request API
 export const leaveRequestAPI = {
   getAll: async () => {
-    await delay(600);
-    return mockLeaveRequests.map((leave) => ({
+    const res = await fetch(`${API_URL}/api/leave-requests`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải đơn nghỉ phép');
+    }
+    const rows = await res.json();
+    return rows.map((leave) => ({
       ...leave,
-      employee: getEmployeeById(leave.employee_id),
+      status: leave.statusLabel || leave.status,
+      leave_date: leave.start_date,
     }));
   },
 
-  create: async (
-    leave
-  ) => {
-    await delay(800);
-    const newLeave = {
-      ...leave,
-      leave_id: Math.max(...mockLeaveRequests.map((l) => l.leave_id)) + 1,
-      status: 'Chờ duyệt',
-      created_at: new Date().toISOString(),
+  create: async (leave) => {
+    const payload = {
+      employee_id: leave.employee_id,
+      start_date: leave.start_date || leave.leave_date,
+      end_date: leave.end_date || leave.leave_date,
+      reason: leave.reason,
     };
-    mockLeaveRequests.push(newLeave);
-    return newLeave;
+    const res = await fetch(`${API_URL}/api/leave-requests`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Gửi đơn thất bại');
+    }
+    return res.json();
   },
 
   approve: async (id) => {
-    await delay(800);
-    const index = mockLeaveRequests.findIndex((l) => l.leave_id === id);
-    if (index !== -1) {
-      mockLeaveRequests[index].status = 'Đã duyệt';
-      return mockLeaveRequests[index];
+    const res = await fetch(`${API_URL}/api/leave-requests/${id}/approve`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Duyệt đơn thất bại');
     }
-    throw new Error('Leave request not found');
+    return res.json();
   },
 
   reject: async (id) => {
-    await delay(800);
-    const index = mockLeaveRequests.findIndex((l) => l.leave_id === id);
-    if (index !== -1) {
-      mockLeaveRequests[index].status = 'Từ chối';
-      return mockLeaveRequests[index];
+    const res = await fetch(`${API_URL}/api/leave-requests/${id}/reject`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Từ chối đơn thất bại');
     }
-    throw new Error('Leave request not found');
+    return res.json();
   },
 };
 
 // Notification API
 export const notificationAPI = {
-  getAll: async (employeeId) => {
-    await delay(500);
-    return mockNotifications.filter((n) => n.employee_id === employeeId);
+  getAll: async () => {
+    const res = await fetch(`${API_URL}/api/notifications`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải thông báo');
+    }
+    return res.json();
+  },
+
+  getUnreadCount: async () => {
+    const res = await fetch(`${API_URL}/api/notifications/unread-count`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Lỗi khi tải số thông báo');
+    }
+    return res.json();
   },
 
   markAsRead: async (id) => {
-    await delay(400);
-    const index = mockNotifications.findIndex((n) => n.notification_id === id);
-    if (index !== -1) {
-      mockNotifications[index].is_read = true;
+    const res = await fetch(`${API_URL}/api/notifications/${id}/read`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Cập nhật thất bại');
     }
+    return res.json();
+  },
+};
+
+export const profileAPI = {
+  updateProfile: async (data) => {
+    const res = await fetch(`${API_URL}/auth/profile`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Cập nhật hồ sơ thất bại');
+    }
+    const row = await res.json();
+    return { ...row, position: row.position_name || row.position };
+  },
+
+  changePassword: async (data) => {
+    const res = await fetch(`${API_URL}/auth/change-password`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Đổi mật khẩu thất bại');
+    }
+    return res.json();
   },
 };
 
 // ============================================================
 // Account Management API (uses real backend)
 // ============================================================
-const API_URL = 'http://localhost:3000';
-
-const getAuthHeaders = () => {
-  const stored = localStorage.getItem('user');
-  if (stored) {
-    try {
-      const user = JSON.parse(stored);
-      if (user.token) {
-        return {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${user.token}`,
-        };
-      }
-    } catch (_) {}
-  }
-  return { 'Content-Type': 'application/json' };
-};
 
 export const accountAPI = {
   getAll: async () => {

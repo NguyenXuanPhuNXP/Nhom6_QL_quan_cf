@@ -30,7 +30,8 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '../hooks/useAuth';
-//leaveRequestPage.jsx
+import { isManager } from '../utils/roles';
+
 export const LeaveRequestPage = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -38,10 +39,12 @@ export const LeaveRequestPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     employee_id: 0,
-    leave_date: '',
+    start_date: '',
+    end_date: '',
     reason: '',
   });
   const { user } = useAuth();
+  const canApprove = isManager(user?.role);
 
   useEffect(() => {
     fetchData();
@@ -64,18 +67,21 @@ export const LeaveRequestPage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.employee_id || !formData.leave_date || !formData.reason) {
+    if (!formData.start_date || !formData.end_date || !formData.reason) {
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
 
     try {
-      await leaveRequestAPI.create(formData);
+      await leaveRequestAPI.create({
+        ...formData,
+        employee_id: formData.employee_id || user?.employee?.employee_id,
+      });
       toast.success('Gửi đơn nghỉ phép thành công');
       setIsDialogOpen(false);
       fetchData();
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -85,7 +91,7 @@ export const LeaveRequestPage = () => {
       toast.success('Đã duyệt đơn nghỉ phép');
       fetchData();
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -97,7 +103,7 @@ export const LeaveRequestPage = () => {
       toast.success('Đã từ chối đơn nghỉ phép');
       fetchData();
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -119,6 +125,15 @@ export const LeaveRequestPage = () => {
       .slice(0, 2);
   };
 
+  const formatDateRange = (leave) => {
+    const start = leave.start_date || leave.leave_date;
+    const end = leave.end_date || leave.leave_date;
+    if (start === end) {
+      return format(new Date(start), 'dd/MM/yyyy', { locale: vi });
+    }
+    return `${format(new Date(start), 'dd/MM/yyyy', { locale: vi })} - ${format(new Date(end), 'dd/MM/yyyy', { locale: vi })}`;
+  };
+
   if (isLoading) {
     return <Loading />;
   }
@@ -129,7 +144,6 @@ export const LeaveRequestPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Đơn nghỉ phép</h1>
@@ -138,8 +152,9 @@ export const LeaveRequestPage = () => {
         <Button
           onClick={() => {
             setFormData({
-              employee_id: user?.employee.employee_id || 0,
-              leave_date: '',
+              employee_id: user?.employee?.employee_id || 0,
+              start_date: '',
+              end_date: '',
               reason: '',
             });
             setIsDialogOpen(true);
@@ -151,7 +166,6 @@ export const LeaveRequestPage = () => {
         </Button>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardContent className="pt-6">
@@ -181,7 +195,6 @@ export const LeaveRequestPage = () => {
         </Card>
       </div>
 
-      {/* Leave Requests Table */}
       <Card>
         <CardHeader>
           <CardTitle>Danh sách đơn nghỉ phép</CardTitle>
@@ -216,9 +229,7 @@ export const LeaveRequestPage = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {format(new Date(leave.leave_date), 'dd/MM/yyyy', { locale: vi })}
-                      </TableCell>
+                      <TableCell>{formatDateRange(leave)}</TableCell>
                       <TableCell className="max-w-xs">
                         <p className="truncate">{leave.reason}</p>
                       </TableCell>
@@ -232,7 +243,7 @@ export const LeaveRequestPage = () => {
                         <Badge className={getStatusColor(leave.status)}>{leave.status}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        {leave.status === 'Chờ duyệt' && user?.role === 'admin' && (
+                        {leave.status === 'Chờ duyệt' && canApprove && (
                           <div className="flex items-center justify-end gap-2">
                             <Button
                               size="sm"
@@ -268,7 +279,6 @@ export const LeaveRequestPage = () => {
         </CardContent>
       </Card>
 
-      {/* Add Leave Request Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -276,34 +286,51 @@ export const LeaveRequestPage = () => {
             <DialogDescription>Điền thông tin đơn xin nghỉ phép</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="employee">Nhân viên *</Label>
-              <Select
-                value={formData.employee_id.toString()}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, employee_id: Number(value) })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Chọn nhân viên" />
-                </SelectTrigger>
-                <SelectContent>
-                  {employees.map((emp) => (
-                    <SelectItem key={emp.employee_id} value={emp.employee_id.toString()}>
-                      {emp.full_name} - {emp.position}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="leave_date">Ngày nghỉ *</Label>
-              <Input
-                id="leave_date"
-                type="date"
-                value={formData.leave_date}
-                onChange={(e) => setFormData({ ...formData, leave_date: e.target.value })}
-              />
+            {canApprove && (
+              <div className="space-y-2">
+                <Label htmlFor="employee">Nhân viên *</Label>
+                <Select
+                  value={formData.employee_id.toString()}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, employee_id: Number(value) })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn nhân viên" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.employee_id} value={emp.employee_id.toString()}>
+                        {emp.full_name} - {emp.position}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Từ ngày *</Label>
+                <Input
+                  id="start_date"
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, start_date: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end_date">Đến ngày *</Label>
+                <Input
+                  id="end_date"
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, end_date: e.target.value })
+                  }
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="reason">Lý do nghỉ *</Label>

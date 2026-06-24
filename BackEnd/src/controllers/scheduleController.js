@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const { createNotification } = require('../services/notificationService');
 
 const DEFAULT_SHIFTS = [
     { shift_name: 'Ca sáng', start_time: '06:00:00', end_time: '11:00:00', salary_multiplier: 1 },
@@ -178,6 +179,22 @@ exports.create = async (req, res) => {
              VALUES (?, ?, ?, 'Da_phan_cong')`,
             [employee_id, shift_id, work_date]
         );
+
+        const [shiftRows] = await db.execute(
+            `SELECT shift_name, start_time, end_time FROM shift WHERE shift_id = ?`,
+            [shift_id]
+        );
+        const shift = shiftRows[0];
+        const shiftLabel = shift
+            ? `${shift.shift_name} (${String(shift.start_time).slice(0, 5)} - ${String(shift.end_time).slice(0, 5)})`
+            : 'ca làm việc';
+
+        await createNotification(
+            employee_id,
+            'Lịch làm việc mới',
+            `Bạn được phân ${shiftLabel} vào ngày ${work_date}.`
+        );
+
         return res.status(201).json({ 
             message: 'Thêm lịch thành công',
             schedule_id: result.insertId 
