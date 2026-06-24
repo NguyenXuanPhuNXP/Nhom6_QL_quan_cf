@@ -27,6 +27,7 @@ import { toast } from 'sonner';
 import { format, addDays, startOfWeek } from 'date-fns';
 import { vi } from 'date-fns/locale';
 import { useAuth } from '../hooks/useAuth';
+import { isManager } from '../utils/roles';
 
 const API_URL = 'http://localhost:3000';
 
@@ -54,17 +55,9 @@ const SHIFT_COLORS = {
 };
 const getShiftColor = (shiftName) => SHIFT_COLORS[shiftName] || '#6366f1';
 
-const normalizeRole = (role = '') =>
-  String(role)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .trim();
-
 export const SchedulePage = () => {
   const { user } = useAuth();
-  const userRole = normalizeRole(user?.role);
-  const canManage = userRole === 'admin' || userRole === 'quan ly';
+  const canManage = isManager(user?.role);
 
   const [schedules, setSchedules] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -133,7 +126,7 @@ const [formData, setFormData] = useState({
       setFormData({
         employee_id: String(schedule.employee_id),
         shift_id: String(schedule.shift_id),
-        work_date: schedule.work_date,
+        work_date: String(schedule.work_date).slice(0, 10),
       });
     } else {
       setEditingSchedule(null);
@@ -301,9 +294,10 @@ const handleDelete = async () => {
 
   const getScheduleForDate = (date, employeeId) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return schedules.find(
-      (s) => s.work_date === dateStr && s.employee_id === employeeId
-    );
+    return schedules.find((s) => {
+      const scheduleDate = String(s.work_date).slice(0, 10);
+      return scheduleDate === dateStr && s.employee_id === employeeId;
+    });
   };
 
   if (isLoading) {

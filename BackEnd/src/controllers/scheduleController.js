@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { createNotification } = require('../services/notificationService');
+const { formatDateOnly } = require('../utils/date');
 
 const DEFAULT_SHIFTS = [
     { shift_name: 'Ca sáng', start_time: '06:00:00', end_time: '11:00:00', salary_multiplier: 1 },
@@ -91,9 +92,7 @@ exports.getAll = async (req, res) => {
             schedule_id: row.schedule_id,
             employee_id: row.employee_id,
             shift_id: row.shift_id,
-            work_date: row.work_date instanceof Date 
-                ? row.work_date.toISOString().split('T')[0] 
-                : String(row.work_date).split('T')[0],
+            work_date: formatDateOnly(row.work_date),
             status: row.status,
             employee: { employee_id: row.employee_id, full_name: row.full_name },
             shift: { 
@@ -139,9 +138,7 @@ exports.getByWeek = async (req, res) => {
             schedule_id: row.schedule_id,
             employee_id: row.employee_id,
             shift_id: row.shift_id,
-            work_date: row.work_date instanceof Date 
-                ? row.work_date.toISOString().split('T')[0] 
-                : String(row.work_date).split('T')[0],
+            work_date: formatDateOnly(row.work_date),
             status: row.status,
             employee: { employee_id: row.employee_id, full_name: row.full_name },
             shift: { 
