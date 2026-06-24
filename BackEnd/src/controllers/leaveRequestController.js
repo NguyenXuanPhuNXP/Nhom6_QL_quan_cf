@@ -103,7 +103,7 @@ exports.create = async (req, res) => {
         return res.status(500).json({ message: 'Lỗi server' });
     }
 };
-
+//cập nhật trạng thái đơn nghỉ phép
 const updateLeaveStatus = async (req, res, status) => {
     try {
         const { id } = req.params;
