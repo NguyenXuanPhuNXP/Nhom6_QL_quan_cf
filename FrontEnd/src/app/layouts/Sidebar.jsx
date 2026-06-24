@@ -27,11 +27,20 @@ const menuItems = [
   { icon: User, label: 'Hồ sơ', path: '/profile', roles: ['Admin', 'Quản lý', 'Staff'] },
 ];
 
+const normalizeRole = (role = '') =>
+  String(role)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
 export const Sidebar = ({ isOpen = false, onClose }) => {
   const { user } = useAuth();
-  const userRole = user?.role || 'Staff';
+  const userRole = normalizeRole(user?.role || 'Staff');
   
-  const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
+  const filteredMenuItems = menuItems.filter((item) =>
+    item.roles.map(normalizeRole).includes(userRole)
+  );
 
   return (
     <>

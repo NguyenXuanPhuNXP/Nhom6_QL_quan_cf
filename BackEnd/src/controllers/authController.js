@@ -1,5 +1,69 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
+
+const normalizeGender = (gender = 'Nam') => {
+    const map = {
+        'Nữ': 'Nu',
+        'Khác': 'Khac',
+        Nam: 'Nam',
+        Nu: 'Nu',
+        Khac: 'Khac',
+    };
+    return map[gender] || gender;
+};
+
+const resolvePositionId = async (positionId, positionName) => {
+    if (positionId) {
+        return Number(positionId);
+    }
+
+    if (!positionName) {
+        return null;
+    }
+
+    const [rows] = await db.execute(
+        'SELECT position_id FROM positions WHERE position_name = ? LIMIT 1',
+        [positionName]
+    );
+
+    if (rows.length > 0) {
+        return rows[0].position_id;
+    }
+
+    const [result] = await db.execute(
+        'INSERT INTO positions (position_name) VALUES (?)',
+        [positionName]
+    );
+
+    return result.insertId;
+};
+
+exports.getAllPositions = async (req, res) => {
+    try {
+        const defaults = ['Quản lý', 'Pha chế', 'Phục vụ', 'Thu ngân'];
+        for (const name of defaults) {
+            const [existing] = await db.execute(
+                'SELECT position_id FROM positions WHERE position_name = ? LIMIT 1',
+                [name]
+            );
+            if (existing.length === 0) {
+                await db.execute(
+                    'INSERT INTO positions (position_name) VALUES (?)',
+                    [name]
+                );
+            }
+        }
+
+        const [rows] = await db.execute(
+            'SELECT position_id, position_name FROM positions ORDER BY position_name'
+        );
+
+        return res.status(200).json(rows);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Lỗi server' });
+    }
+};
 const jwt = require('jsonwebtoken');
 
 exports.login = async (req, res) => {
@@ -574,6 +638,7 @@ exports.getAllEmployees = async (req, res) => {
                 e.gender,
                 e.phone,
                 e.address,
+                e.position_id,
                 e.salary_rate,
                 e.created_at,
                 p.position_name
@@ -642,18 +707,27 @@ exports.createEmployee = async (req, res) => {
             phone,
             address,
             position_id,
+            position,
+            position_name,
             salary_rate
         } = req.body;
+
+        const resolvedPositionId = await resolvePositionId(
+            position_id,
+            position || position_name
+        );
 
         if (
             !full_name ||
             !gender ||
-            !position_id
+            !resolvedPositionId
         ) {
             return res.status(400).json({
                 message: 'Thiếu dữ liệu bắt buộc'
             });
         }
+
+        const normalizedGender = normalizeGender(gender);
 
         const [phoneExist] =
             await db.execute(
@@ -686,10 +760,10 @@ exports.createEmployee = async (req, res) => {
             `,
             [
                 full_name,
-                gender,
+                normalizedGender,
                 phone,
                 address,
-                position_id,
+                resolvedPositionId,
                 salary_rate || 0
             ]
         );
@@ -721,6 +795,8 @@ exports.updateEmployee = async (req, res) => {
             phone,
             address,
             position_id,
+            position,
+            position_name,
             salary_rate
         } = req.body;
 
@@ -740,6 +816,12 @@ exports.updateEmployee = async (req, res) => {
             });
         }
 
+        const current = employees[0];
+        const resolvedPositionId = await resolvePositionId(
+            position_id,
+            position || position_name
+        ) || current.position_id;
+
         await db.execute(
             `
             UPDATE employee
@@ -753,18 +835,31 @@ exports.updateEmployee = async (req, res) => {
             WHERE employee_id = ?
             `,
             [
-                full_name,
-                gender,
-                phone,
-                address,
-                position_id,
-                salary_rate,
+                full_name ?? current.full_name,
+                normalizeGender(gender ?? current.gender),
+                phone ?? current.phone,
+                address ?? current.address,
+                resolvedPositionId,
+                salary_rate ?? current.salary_rate,
                 employeeId
             ]
         );
 
+        const [updated] = await db.execute(
+            `
+            SELECT
+                e.*,
+                p.position_name
+            FROM employee e
+            JOIN positions p ON e.position_id = p.position_id
+            WHERE e.employee_id = ?
+            `,
+            [employeeId]
+        );
+
         return res.status(200).json({
-            message: 'Cập nhật nhân viên thành công'
+            message: 'Cập nhật nhân viên thành công',
+            ...updated[0]
         });
 
     } catch (error) {
@@ -819,5 +914,89 @@ exports.deleteEmployee = async (req, res) => {
             message: 'Không thể xóa nhân viên'
         });
 
+    }
+};
+
+exports.updateProfile = async (req, res) => {
+    try {
+        const employeeId = req.user.employee_id;
+        const { full_name, phone, address, avatar } = req.body;
+
+        if (!full_name) {
+            return res.status(400).json({ message: 'Họ tên là bắt buộc' });
+        }
+
+        await db.execute(
+            `UPDATE employee
+             SET full_name = ?, phone = ?, address = ?
+             WHERE employee_id = ?`,
+            [full_name, phone || null, address || null, employeeId]
+        );
+
+        const [rows] = await db.execute(
+            `
+            SELECT
+                e.employee_id,
+                e.full_name,
+                e.gender,
+                e.phone,
+                e.address,
+                e.salary_rate,
+                e.created_at,
+                p.position_name
+            FROM employee e
+            JOIN positions p ON e.position_id = p.position_id
+            WHERE e.employee_id = ?
+            `,
+            [employeeId]
+        );
+
+        return res.status(200).json({
+            ...rows[0],
+            avatar: avatar || null,
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Lỗi server' });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    try {
+        const accountId = req.user.account_id;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Thiếu dữ liệu bắt buộc' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+        }
+
+        const [accounts] = await db.execute(
+            `SELECT password FROM account WHERE account_id = ?`,
+            [accountId]
+        );
+
+        if (accounts.length === 0) {
+            return res.status(404).json({ message: 'Không tìm thấy tài khoản' });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, accounts[0].password);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Mật khẩu hiện tại không đúng' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.execute(
+            `UPDATE account SET password = ? WHERE account_id = ?`,
+            [hashedPassword, accountId]
+        );
+
+        return res.status(200).json({ message: 'Đổi mật khẩu thành công' });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Lỗi server' });
     }
 };

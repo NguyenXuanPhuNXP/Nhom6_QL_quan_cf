@@ -32,7 +32,7 @@ export const DashboardPage = () => {
           dashboardAPI.getStats(),
           dashboardAPI.getAttendanceChart(),
           dashboardAPI.getTodaySchedule(),
-          user ? notificationAPI.getAll(user.employee.employee_id) : Promise.resolve([]),
+          user ? notificationAPI.getAll() : Promise.resolve([]),
         ]);
         setStats(statsData);
         setChartData(chartDataRes);
@@ -93,6 +93,7 @@ export const DashboardPage = () => {
       </div>
 
       {/* Charts and Schedule Grid */}
+      {/** */}      
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
         {/* Attendance Chart */}
         <Card>

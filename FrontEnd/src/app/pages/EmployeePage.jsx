@@ -33,6 +33,7 @@ export const EmployeePage = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'Admin';
   const [employees, setEmployees] = useState([]);
+  const [positions, setPositions] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -44,7 +45,7 @@ export const EmployeePage = () => {
     gender: 'Nam',
     phone: '',
     address: '',
-    position: '',
+    position_id: '',
     salary_rate: 0,
   });
 
@@ -56,8 +57,8 @@ export const EmployeePage = () => {
     const filtered = employees.filter(
       (emp) =>
         emp.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.phone.includes(searchTerm)
+        (emp.position || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (emp.phone || '').includes(searchTerm)
     );
     setFilteredEmployees(filtered);
   }, [searchTerm, employees]);
@@ -65,9 +66,13 @@ export const EmployeePage = () => {
   const fetchEmployees = async () => {
     setIsLoading(true);
     try {
-      const data = await employeeAPI.getAll();
-      setEmployees(data);
-      setFilteredEmployees(data);
+      const [employeeData, positionData] = await Promise.all([
+        employeeAPI.getAll(),
+        employeeAPI.getPositions(),
+      ]);
+      setEmployees(employeeData);
+      setFilteredEmployees(employeeData);
+      setPositions(positionData);
     } catch (error) {
       toast.error('Lỗi khi tải dữ liệu nhân viên');
     } finally {
@@ -80,11 +85,11 @@ export const EmployeePage = () => {
       setEditingEmployee(employee);
       setFormData({
         full_name: employee.full_name,
-        gender: employee.gender,
-        phone: employee.phone,
-        address: employee.address,
-        position: employee.position,
-        salary_rate: employee.salary_rate,
+        gender: employee.gender || 'Nam',
+        phone: employee.phone || '',
+        address: employee.address || '',
+        position_id: String(employee.position_id || ''),
+        salary_rate: Number(employee.salary_rate) || 0,
       });
     } else {
       setEditingEmployee(null);
@@ -93,7 +98,7 @@ export const EmployeePage = () => {
         gender: 'Nam',
         phone: '',
         address: '',
-        position: '',
+        position_id: positions.length > 0 ? String(positions[0].position_id) : '',
         salary_rate: 0,
       });
     }
@@ -101,23 +106,32 @@ export const EmployeePage = () => {
   };
 
   const handleSubmit = async () => {
-    if (!formData.full_name || !formData.phone || !formData.position) {
+    if (!formData.full_name || !formData.phone || !formData.position_id) {
       toast.error('Vui lòng điền đầy đủ thông tin');
       return;
     }
 
+    const payload = {
+      full_name: formData.full_name,
+      gender: formData.gender,
+      phone: formData.phone,
+      address: formData.address,
+      position_id: Number(formData.position_id),
+      salary_rate: Number(formData.salary_rate) || 0,
+    };
+
     try {
       if (editingEmployee) {
-        await employeeAPI.update(editingEmployee.employee_id, formData);
+        await employeeAPI.update(editingEmployee.employee_id, payload);
         toast.success('Cập nhật nhân viên thành công');
       } else {
-        await employeeAPI.create(formData);
+        await employeeAPI.create(payload);
         toast.success('Thêm nhân viên thành công');
       }
       setIsDialogOpen(false);
       fetchEmployees();
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     }
   };
 
@@ -130,7 +144,7 @@ export const EmployeePage = () => {
       toast.success('Xóa nhân viên thành công');
       fetchEmployees();
     } catch (error) {
-      toast.error('Có lỗi xảy ra');
+      toast.error(error.message || 'Có lỗi xảy ra');
     } finally {
       setIsDeleting(false);
     }
@@ -161,7 +175,6 @@ export const EmployeePage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 sm:text-3xl">Quản lý nhân viên</h1>
@@ -178,7 +191,6 @@ export const EmployeePage = () => {
         )}
       </div>
 
-      {/* Search and Filter */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -195,7 +207,6 @@ export const EmployeePage = () => {
         </CardContent>
       </Card>
 
-      {/* Employee Table */}
       <Card>
         <CardHeader>
           <CardTitle>Danh sách nhân viên ({filteredEmployees.length})</CardTitle>
@@ -227,7 +238,7 @@ export const EmployeePage = () => {
                         <span className="font-medium">{employee.full_name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{employee.gender}</TableCell>
+                    <TableCell>{GENDER_LABELS[employee.gender] || employee.gender}</TableCell>
                     <TableCell>{employee.phone}</TableCell>
                     <TableCell className="max-w-xs truncate">{employee.address}</TableCell>
                     <TableCell>
@@ -235,29 +246,27 @@ export const EmployeePage = () => {
                         {employee.position}
                       </Badge>
                     </TableCell>
-                    <TableCell>{employee.salary_rate.toLocaleString('vi-VN')}đ</TableCell>
-                    {isAdmin && (
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleOpenDialog(employee)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(employee.employee_id)}
-                            disabled={isDeleting}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell>{Number(employee.salary_rate).toLocaleString('vi-VN')}đ</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleOpenDialog(employee)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(employee.employee_id)}
+                          disabled={isDeleting}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -266,7 +275,6 @@ export const EmployeePage = () => {
         </CardContent>
       </Card>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
@@ -300,8 +308,8 @@ export const EmployeePage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Nam">Nam</SelectItem>
-                  <SelectItem value="Nữ">Nữ</SelectItem>
-                  <SelectItem value="Khác">Khác</SelectItem>
+                  <SelectItem value="Nu">Nữ</SelectItem>
+                  <SelectItem value="Khac">Khác</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -315,19 +323,20 @@ export const EmployeePage = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="position">Vị trí *</Label>
+              <Label htmlFor="position_id">Vị trí *</Label>
               <Select
-                value={formData.position}
-                onValueChange={(value) => setFormData({ ...formData, position: value })}
+                value={formData.position_id}
+                onValueChange={(value) => setFormData({ ...formData, position_id: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn vị trí" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Quản lý">Quản lý</SelectItem>
-                  <SelectItem value="Pha chế">Pha chế</SelectItem>
-                  <SelectItem value="Phục vụ">Phục vụ</SelectItem>
-                  <SelectItem value="Thu ngân">Thu ngân</SelectItem>
+                  {positions.map((pos) => (
+                    <SelectItem key={pos.position_id} value={String(pos.position_id)}>
+                      {pos.position_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
