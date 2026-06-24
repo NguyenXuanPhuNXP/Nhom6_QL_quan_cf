@@ -172,6 +172,25 @@ exports.create = async (req, res) => {
         if (existing.length > 0) {
             return res.status(400).json({ message: 'Nhân viên đã được phân ca này trong ngày' });
         }
+
+        // --- BỔ SUNG: KIỂM TRA TRÙNG LẶP KHUNG GIỜ (OVERLAP SHIFT CHECK) ---
+        const [targetShift] = await db.execute('SELECT start_time, end_time FROM shift WHERE shift_id = ?', [shift_id]);
+        if (targetShift.length > 0) {
+            const [overlapping] = await db.execute(`
+                SELECT s.schedule_id, sh.shift_name 
+                FROM schedule s
+                INNER JOIN shift sh ON s.shift_id = sh.shift_id
+                WHERE s.employee_id = ? AND s.work_date = ? AND s.status != 'Huy'
+                  AND ? < sh.end_time AND ? > sh.start_time
+                LIMIT 1
+            `, [employee_id, work_date, targetShift[0].start_time, targetShift[0].end_time]);
+
+            if (overlapping.length > 0) {
+                return res.status(400).json({ message: `Lỗi: Khung giờ trùng ca với [${overlapping[0].shift_name}] đã xếp trước đó.` });
+            }
+        }
+        // ------------------------------------------------------------------
+
         const [result] = await db.execute(
             //Create Schedule
             `INSERT INTO schedule (employee_id, shift_id, work_date, status) 
@@ -194,11 +213,35 @@ exports.update = async (req, res) => {
         const id = req.params.id;
         const { employee_id, shift_id, work_date, status } = req.body;
         const [exists] = await db.execute(
-            'SELECT schedule_id FROM schedule WHERE schedule_id = ?', [id]
+            'SELECT employee_id, shift_id, work_date FROM schedule WHERE schedule_id = ?', [id]
         );
         if (exists.length === 0) {
             return res.status(404).json({ message: 'Không tìm thấy lịch làm việc' });
         }
+
+        // --- BỔ SUNG: KIỂM TRA TRÙNG LẶP KHUNG GIỜ KHI SỬA (OVERLAP SHIFT CHECK ON UPDATE) ---
+        const finalEmployee = employee_id || exists[0].employee_id;
+        const finalShift = shift_id || exists[0].shift_id;
+        const finalDate = work_date || exists[0].work_date;
+
+        if (employee_id || shift_id || work_date) {
+            const [targetShift] = await db.execute('SELECT start_time, end_time FROM shift WHERE shift_id = ?', [finalShift]);
+            if (targetShift.length > 0) {
+                const [overlapping] = await db.execute(`
+                    SELECT s.schedule_id, sh.shift_name 
+                    FROM schedule s
+                    INNER JOIN shift sh ON s.shift_id = sh.shift_id
+                    WHERE s.employee_id = ? AND s.work_date = ? AND s.status != 'Huy' AND s.schedule_id != ?
+                      AND ? < sh.end_time AND ? > sh.start_time
+                    LIMIT 1
+                `, [finalEmployee, finalDate, id, targetShift[0].start_time, targetShift[0].end_time]);
+
+                if (overlapping.length > 0) {
+                    return res.status(400).json({ message: `Lỗi: Khung giờ mới bị trùng ca với [${overlapping[0].shift_name}] của nhân viên.` });
+                }
+            }
+        }
+        // -------------------------------------------------------------------------------------
 
         const updates = [];
         const params = [];
