@@ -288,6 +288,7 @@ exports.getEmployees = async (req, res) => {
 };
 
 // POST create new shift
+//
 exports.createShift = async (req, res) => {
     try {
         const { shift_name, start_time, end_time, salary_multiplier = 1 } = req.body;
