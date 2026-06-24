@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 
 router.get('/', auth, notificationController.getMyNotifications);
 router.get('/unread-count', auth, notificationController.getUnreadCount);
+router.put('/read-all', auth, notificationController.markAllAsRead);
 router.put('/:id/read', auth, notificationController.markAsRead);
 
 module.exports = router;

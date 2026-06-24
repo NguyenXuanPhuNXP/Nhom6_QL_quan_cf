@@ -393,6 +393,18 @@ export const notificationAPI = {
     }
     return res.json();
   },
+
+  markAllAsRead: async () => {
+    const res = await fetch(`${API_URL}/api/notifications/read-all`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Cập nhật thất bại');
+    }
+    return res.json();
+  },
 };
 
 export const profileAPI = {

@@ -12,7 +12,9 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
-import { dashboardAPI, notificationAPI } from '../services/api';
+import { dashboardAPI } from '../services/api';
+import { useNotifications } from '../hooks/useNotifications';
+import { isNotificationUnread } from '../utils/notifications';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
 
@@ -20,24 +22,22 @@ export const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [chartData, setChartData] = useState([]);
   const [todaySchedule, setTodaySchedule] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const { notifications, markAsRead } = useNotifications();
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [statsData, chartDataRes, scheduleData, notifData] = await Promise.all([
+        const [statsData, chartDataRes, scheduleData] = await Promise.all([
           dashboardAPI.getStats(),
           dashboardAPI.getAttendanceChart(),
           dashboardAPI.getTodaySchedule(),
-          user ? notificationAPI.getAll() : Promise.resolve([]),
         ]);
         setStats(statsData);
         setChartData(chartDataRes);
         setTodaySchedule(scheduleData);
-        setNotifications(notifData.slice(0, 5));
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -47,6 +47,8 @@ export const DashboardPage = () => {
 
     fetchData();
   }, [user]);
+
+  const recentNotifications = notifications.slice(0, 5);
 
   if (isLoading) {
     return <Loading />;
@@ -180,15 +182,20 @@ export const DashboardPage = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {notifications.length > 0 ? (
-              notifications.map((notif) => (
+            {recentNotifications.length > 0 ? (
+              recentNotifications.map((notif) => {
+                const unread = isNotificationUnread(notif);
+                return (
                 <div
                   key={notif.notification_id}
-                  className={`flex items-start gap-4 p-4 rounded-lg border ${
-                    notif.is_read ? 'bg-white' : 'bg-blue-50 border-blue-200'
+                  className={`flex items-start gap-4 p-4 rounded-lg border cursor-pointer transition-colors ${
+                    unread ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' : 'bg-white'
                   }`}
+                  onClick={() => unread && markAsRead(notif.notification_id)}
                 >
-                  <div className="w-2 h-2 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0"></div>
+                  <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                    unread ? 'bg-[#3b82f6]' : 'bg-slate-300'
+                  }`} />
                   <div className="flex-1">
                     <h4 className="font-medium text-slate-800">{notif.title}</h4>
                     <p className="text-sm text-slate-600 mt-1">{notif.content}</p>
@@ -197,7 +204,8 @@ export const DashboardPage = () => {
                     </p>
                   </div>
                 </div>
-              ))
+              );
+              })
             ) : (
               <p className="text-center text-slate-500 py-4">Không có thông báo mới</p>
             )}

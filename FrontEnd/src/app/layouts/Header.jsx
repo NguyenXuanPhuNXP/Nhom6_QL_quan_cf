@@ -1,4 +1,4 @@
-import { Bell, LogOut, Menu, User } from 'lucide-react';
+import { Bell, LogOut, Menu, User, Check, CheckCheck } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNotifications } from '../hooks/useNotifications';
 import { useNavigate } from 'react-router';
@@ -12,15 +12,38 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
+import { isNotificationUnread } from '../utils/notifications';
+import { toast } from 'sonner';
 
 export const Header = ({ onOpenSidebar }) => {
   const { user, logout } = useAuth();
-  const { unreadCount } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
+
+  const recentNotifications = notifications.slice(0, 5);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleMarkAsRead = async (id, event) => {
+    event?.stopPropagation();
+    try {
+      await markAsRead(id);
+    } catch (error) {
+      toast.error(error.message || 'Không thể đánh dấu đã đọc');
+    }
+  };
+
+  const handleMarkAllAsRead = async (event) => {
+    event?.stopPropagation();
+    try {
+      await markAllAsRead();
+      toast.success('Đã đánh dấu tất cả đã đọc');
+    } catch (error) {
+      toast.error(error.message || 'Có lỗi xảy ra');
+    }
   };
 
   const getInitials = (name) => {
@@ -60,22 +83,77 @@ export const Header = ({ onOpenSidebar }) => {
       </div>
 
       <div className="flex shrink-0 items-center gap-2 sm:gap-4">
-        {/* Notifications */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-          onClick={() => navigate('/notifications')}
-        >
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-medium text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <DropdownMenuLabel className="flex items-center justify-between">
+              <span>Thông báo</span>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAllAsRead}
+                  className="text-xs font-normal text-[#3b82f6] hover:underline"
+                >
+                  Đánh dấu tất cả
+                </button>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {recentNotifications.length > 0 ? (
+              recentNotifications.map((notif) => {
+                const unread = isNotificationUnread(notif);
+                return (
+                  <DropdownMenuItem
+                    key={notif.notification_id}
+                    className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${
+                      unread ? 'bg-blue-50' : ''
+                    }`}
+                    onClick={() => {
+                      if (unread) {
+                        handleMarkAsRead(notif.notification_id);
+                      }
+                      navigate('/notifications');
+                    }}
+                  >
+                    <div className="flex w-full items-start justify-between gap-2">
+                      <p className="text-sm font-medium text-slate-800">{notif.title}</p>
+                      {unread && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleMarkAsRead(notif.notification_id, e)}
+                          className="shrink-0 text-slate-400 hover:text-[#3b82f6]"
+                          title="Đánh dấu đã đọc"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 line-clamp-2">{notif.content}</p>
+                  </DropdownMenuItem>
+                );
+              })
+            ) : (
+              <div className="px-3 py-6 text-center text-sm text-slate-500">
+                Không có thông báo
+              </div>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate('/notifications')}>
+              <CheckCheck className="mr-2 h-4 w-4" />
+              <span>Xem tất cả thông báo</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-slate-50 sm:gap-3 sm:px-3">
